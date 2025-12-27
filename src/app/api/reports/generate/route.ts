@@ -312,7 +312,14 @@ export async function POST(request: Request) {
             ...reportData,
             aiReport: aiData.report,
             // Keep keys stable for UI components if needed, or map them
-            summaryCards: aiData.summary_cards
+            summaryCards: aiData.summary_cards,
+            _debug: {
+                bingUrl,
+                bingRawLength: bingRaw?.length || 0,
+                bingSample: bingRaw?.slice(0, 2),
+                filteredCount: bingDailyData?.length || 0,
+                year, month
+            }
         });
 
     } catch (error) {
