@@ -34,3 +34,32 @@ export async function getBingSites(apiKey: string): Promise<BingSite[]> {
         return [];
     }
 }
+
+export async function getBingPerformance(
+    apiKey: string,
+    siteUrl: string,
+) {
+    // Bing GetSiteStats returns the last 6 months of data by default.
+    // We will fetch it all and filter in the application logic.
+    const endpoint = "https://ssl.bing.com/webmaster/api.svc/json/GetSiteStats";
+
+    try {
+        const response = await fetch(`${endpoint}?siteUrl=${encodeURIComponent(siteUrl)}&apikey=${apiKey}`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Bing API Error: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        // Wrapper 'd'
+        return data.d || data || [];
+    } catch (error) {
+        console.error("Failed to fetch Bing stats", error);
+        return [];
+    }
+}
