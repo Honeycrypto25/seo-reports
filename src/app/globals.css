@@ -83,9 +83,7 @@ body {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     background-color: #09090b !important;
-    /* Dark background */
     color: #e4e4e7 !important;
-    /* Light text */
     margin: 0;
     padding: 20px;
   }
@@ -94,7 +92,6 @@ body {
   .bg-surface,
   .bg-surface\/50 {
     background-color: #18181b !important;
-    /* Dark card bg */
     border: 1px solid #27272a !important;
     color: #e4e4e7 !important;
     box-shadow: none !important;
@@ -111,18 +108,39 @@ body {
     color: inherit !important;
   }
 
-  /* Aggressively hide layout elements */
+  /* 
+     AGGRESSIVE LAYOUT HIDING 
+     Hide navigation, sidebars, headers, and specific Tailwind layout classes 
+  */
   nav,
   header,
   aside,
   .sidebar,
   .header,
-  .navigation {
+  .navigation,
+  .lg\:fixed,
+  .lg\:w-72,
+  .sticky,
+  .border-r {
     display: none !important;
     height: 0 !important;
     width: 0 !important;
     overflow: hidden !important;
     visibility: hidden !important;
+  }
+
+  /* RESET MAIN CONTENT LAYOUT PADDING */
+  .lg\:pl-72 {
+    padding-left: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Disable Grid Background Pattern */
+  .bg-\[url\(\'\/grid\.svg\'\)\] {
+    background-image: none !important;
+    background-color: #09090b !important;
   }
 
   /* Helper to ensure charts and dark elements stay dark */
@@ -151,10 +169,5 @@ body {
     width: 100% !important;
     height: 300px !important;
     break-inside: avoid !important;
-  }
-
-  /* Hide specific UI elements inside report helper if any (like close button) */
-  .no-print {
-    display: none !important;
   }
 }
