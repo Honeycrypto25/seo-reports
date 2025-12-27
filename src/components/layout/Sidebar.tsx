@@ -12,8 +12,13 @@ const navigation = [
     { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
+import { useSession, signOut } from "next-auth/react";
+
 export function Sidebar() {
     const pathname = usePathname();
+    const { data: session } = useSession();
+    const user = session?.user;
+    const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : '??';
 
     return (
         <div className="hidden border-r border-border bg-surface/50 backdrop-blur-xl lg:block lg:w-72 lg:fixed lg:inset-y-0 z-50">
@@ -56,15 +61,21 @@ export function Sidebar() {
 
                 {/* User Profile / Footer */}
                 <div className="border-t border-border/50 p-4">
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-highlight/50 border border-border/50 hover:border-primary/30 transition-colors cursor-pointer group">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-zinc-700 to-zinc-600 flex items-center justify-center border border-white/10">
-                            <span className="text-sm font-bold text-white">JD</span>
+                    <div className="flex items-center gap-3 p-3 rounded-xl bg-surface-highlight/50 border border-border/50 hover:border-primary/30 transition-colors group">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-zinc-700 to-zinc-600 flex items-center justify-center border border-white/10 shrink-0">
+                            <span className="text-sm font-bold text-white">{initials}</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">John Doe</p>
-                            <p className="text-xs text-foreground-muted truncate">john@example.com</p>
+                            <p className="text-sm font-medium text-foreground truncate">{user?.name || 'User'}</p>
+                            <p className="text-xs text-foreground-muted truncate">{user?.email}</p>
                         </div>
-                        <LogOut className="w-4 h-4 text-foreground-muted hover:text-foreground transition-colors" />
+                        <button
+                            onClick={() => signOut()}
+                            className="p-1.5 hover:bg-error/10 hover:text-error rounded-lg transition-colors"
+                            title="Log out"
+                        >
+                            <LogOut className="w-4 h-4" />
+                        </button>
                     </div>
                 </div>
             </div>
