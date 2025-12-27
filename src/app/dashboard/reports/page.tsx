@@ -129,51 +129,19 @@ export default function ReportsPage() {
         }
     };
 
-    const handleExportPDF = async () => {
-        if (!reportRef.current) return;
-        setExporting(true);
-
-        // Allow more time for charts to render and animations to complete
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        try {
-            console.log("Starting PDF generation...");
-            const canvas = await html2canvas(reportRef.current, {
-                scale: 1, // Reduced scale to prevent memory crashes
-                useCORS: true,
-                backgroundColor: "#09090b",
-                logging: true,
-            });
-
-            console.log("Canvas generated successfully");
-            const imgData = canvas.toDataURL("image/png");
-
-            const pdf = new jsPDF({
-                orientation: "portrait",
-                unit: "px",
-                format: [canvas.width, canvas.height]
-            });
-
-            pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
-            pdf.save(`SEO-Report-${selectedSite}-${selectedMonth}.pdf`);
-            console.log("PDF saved");
-        } catch (error) {
-            console.error("PDF Export Error Detailed:", error);
-            alert("Nu s-a putut genera PDF-ul. Te rugăm să încerci din nou sau să verifici consola pentru detalii.");
-        } finally {
-            setExporting(false);
-        }
+    const handleExportPDF = () => {
+        window.print();
     };
 
     return (
         <div className="space-y-8">
-            <div>
+            <div className="no-print">
                 <h2 className="text-3xl font-bold tracking-tight glow-text">SEO Reports</h2>
                 <p className="text-foreground-muted mt-2">Generate cross-platform insights for your websites.</p>
             </div>
 
             {/* Control Panel */}
-            <div className="p-6 rounded-xl bg-surface border border-border flex flex-col sm:flex-row gap-4 items-end sm:items-center">
+            <div className="p-6 rounded-xl bg-surface border border-border flex flex-col sm:flex-row gap-4 items-end sm:items-center no-print">
                 <div className="flex-1 w-full space-y-2">
                     <label className="text-sm font-medium text-foreground">Select Website</label>
                     <select
@@ -219,7 +187,7 @@ export default function ReportsPage() {
 
             {/* History Section */}
             {history.length > 0 && !report && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 no-print">
                     <h3 className="text-lg font-medium flex items-center gap-2">
                         <FileBarChart className="w-5 h-5 text-primary" />
                         Saved Reports
@@ -249,10 +217,10 @@ export default function ReportsPage() {
 
             {/* Report View */}
             {report && (
-                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div id="report-container" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
                     {/* Report Header Actions */}
-                    <div className="flex justify-between items-center bg-surface p-4 rounded-xl border border-border shadow-lg">
+                    <div className="flex justify-between items-center bg-surface p-4 rounded-xl border border-border shadow-lg no-print">
                         <div className="flex items-center gap-4">
                             <div className="p-2 rounded-lg bg-primary/10">
                                 <FileBarChart className="w-6 h-6 text-primary" />
@@ -274,15 +242,10 @@ export default function ReportsPage() {
                             <Button
                                 variant="outline"
                                 onClick={handleExportPDF}
-                                disabled={exporting}
                                 className="gap-2 border-primary/30 hover:bg-primary/5 hover:border-primary/50 text-primary-foreground"
                             >
-                                {exporting ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <Download className="w-4 h-4" />
-                                )}
-                                {exporting ? "Se generează PDF..." : "Descarcă PDF"}
+                                <Download className="w-4 h-4" />
+                                Print / Save PDF
                             </Button>
                         </div>
                     </div>

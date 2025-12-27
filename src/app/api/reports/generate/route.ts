@@ -194,6 +194,31 @@ export async function POST(request: Request) {
 
         const aiData = await aiRes.json();
 
+        // Merge GSC and Bing daily data
+        const dailyMap = new Map();
+
+        gscCurrent.forEach((r: any) => {
+            dailyMap.set(r.keys[0], {
+                date: r.keys[0],
+                gsc: { clicks: r.clicks, impressions: r.impressions, ctr: r.ctr, position: r.position },
+                bing: { clicks: 0, impressions: 0, ctr: 0 }
+            });
+        });
+
+        if (bingRaw && Array.isArray(bingRaw)) {
+            processedBing.forEach((r: any) => {
+                if (!r.date) return;
+                const existing = dailyMap.get(r.date);
+                if (existing) {
+                    existing.bing = { clicks: r.Clicks || 0, impressions: r.Impressions || 0, ctr: 0 }; // Calc CTR if needed
+                } else {
+                    // Optionally add days that exist only in Bing, though usually we strictly align to the selected period
+                }
+            });
+        }
+
+        const dailyDataArray = Array.from(dailyMap.values()).sort((a: any, b: any) => a.date.localeCompare(b.date));
+
         // 6. Save to Database (Neon via Prisma)
         const reportData = {
             period: { year, month },
@@ -204,38 +229,39 @@ export async function POST(request: Request) {
                 bingClicks: bingCurrent?.clicks || 0,
                 bingImpressions: bingCurrent?.impressions || 0,
             },
-            daily: gscCurrent.map((r: any) => ({
-                date: r.keys[0],
-                gsc: { clicks: r.clicks, impressions: r.impressions, ctr: r.ctr, position: r.position },
-                bing: { clicks: 0, impressions: 0, ctr: 0 }
-            })),
+            daily: dailyDataArray,
             aiReport: aiData.report,
-            summaryCards: aiData.report.highlights // Using AI highlights for summary cards
+            summaryCards: aiData.report?.highlights // Safe access
         };
 
         try {
-            await prisma.seoReport.upsert({
-                where: {
-                    siteId_period: {
+            if (reportData.aiReport) {
+                await prisma.seoReport.upsert({
+                    where: {
+                        siteId_period: {
+                            siteId: normalizedId,
+                            period: `${year}-${month.toString().padStart(2, '0')}`
+                        }
+                    },
+                    update: {
+                        summary: reportData.summary as any,
+                        aiReport: reportData.aiReport as any,
+                        summaryCards: reportData.summaryCards as any,
+                        dailyData: reportData.daily as any,
+                    },
+                    create: {
                         siteId: normalizedId,
-                        period: `${year}-${month.toString().padStart(2, '0')}`
+                        period: `${year}-${month.toString().padStart(2, '0')}`,
+                        summary: reportData.summary as any,
+                        aiReport: reportData.aiReport as any,
+                        summaryCards: reportData.summaryCards as any,
+                        dailyData: reportData.daily as any,
                     }
-                },
-                update: {
-                    summary: reportData.summary as any,
-                    aiReport: reportData.aiReport as any,
-                    summaryCards: reportData.summaryCards as any,
-                    dailyData: reportData.daily as any,
-                },
-                create: {
-                    siteId: normalizedId,
-                    period: `${year}-${month.toString().padStart(2, '0')}`,
-                    summary: reportData.summary as any,
-                    aiReport: reportData.aiReport as any,
-                    summaryCards: reportData.summaryCards as any,
-                    dailyData: reportData.daily as any,
-                }
-            });
+                });
+                console.log("Report saved successfully to DB");
+            } else {
+                console.warn("Skipping DB Save: AI Report data is missing/invalid");
+            }
         } catch (dbError: any) {
             console.error("CRITICAL DB ERROR: Failed to save report to database:", dbError);
             if (dbError.code) console.error("Prisma Error Code:", dbError.code);

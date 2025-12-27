@@ -72,3 +72,36 @@ body {
 .glow-text {
   text-shadow: 0 0 20px var(--primary-glow);
 }
+
+@media print {
+
+  /* Hide everything by default */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Show only the report container */
+  #report-container,
+  #report-container * {
+    visibility: visible;
+  }
+
+  /* Position report at the top */
+  #report-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: white !important;
+    /* Force white background for print usually */
+    color: black !important;
+  }
+
+  /* Adjust colors for print if needed (optional, dark mode print is heavy ink) */
+  /* For now we keep it as is or let user decide via browser print settings */
+
+  /* Hide specific UI elements inside report helper if any (like close button) */
+  .no-print {
+    display: none !important;
+  }
+}
