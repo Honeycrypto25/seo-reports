@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-8 text-center text-foreground bg-background relative overflow-hidden">
@@ -13,12 +15,16 @@ export default function Home() {
       </p>
 
       <div className="flex gap-4 z-10">
-        <button className="px-6 py-3 bg-primary hover:bg-opacity-90 text-white rounded-lg font-medium transition-all shadow-[0_0_20px_rgba(99,102,241,0.5)]">
-          Get Started
-        </button>
-        <button className="px-6 py-3 border border-border-light hover:border-primary text-foreground rounded-lg font-medium transition-colors glass">
-          Documentation
-        </button>
+        <Link href="/dashboard">
+          <button className="px-6 py-3 bg-primary hover:bg-opacity-90 text-white rounded-lg font-medium transition-all shadow-[0_0_20px_rgba(99,102,241,0.5)]">
+            Get Started
+          </button>
+        </Link>
+        <Link href="https://github.com/Honeycrypto25/seo-reports" target="_blank">
+          <button className="px-6 py-3 border border-border-light hover:border-primary text-foreground rounded-lg font-medium transition-colors glass">
+            Documentation
+          </button>
+        </Link>
       </div>
     </div>
   );
