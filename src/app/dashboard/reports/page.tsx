@@ -27,6 +27,8 @@ export default function ReportsPage() {
     const [report, setReport] = useState<any>(null);
     const [generating, setGenerating] = useState(false);
     const [exporting, setExporting] = useState(false);
+    const [history, setHistory] = useState<any[]>([]);
+
     const reportRef = useRef<HTMLDivElement>(null);
 
     // 1. Load Available "Ready" Sites
@@ -67,6 +69,31 @@ export default function ReportsPage() {
         loadSites();
     }, []);
 
+    // 2. Load History when Site Changes
+    useEffect(() => {
+        if (!selectedSite) return;
+        async function fetchHistory() {
+            try {
+                const res = await fetch(`/api/reports/history?siteId=${selectedSite}`);
+                const data = await res.json();
+                setHistory(data.reports || []);
+            } catch (e) {
+                console.error("Failed to fetch history", e);
+            }
+        }
+        fetchHistory();
+    }, [selectedSite]);
+
+    const loadFromHistory = (historyItem: any) => {
+        setReport({
+            summary: historyItem.summary,
+            aiReport: historyItem.aiReport,
+            daily: historyItem.dailyData,
+            summaryCards: historyItem.aiReport.highlights
+        });
+        setSelectedMonth(historyItem.period);
+    };
+
     const handleGenerate = async () => {
         if (!selectedSite || !selectedMonth) return;
         setGenerating(true);
@@ -88,6 +115,12 @@ export default function ReportsPage() {
 
             const data = await res.json();
             setReport(data);
+
+            // Refresh history after generating new report
+            const historyRes = await fetch(`/api/reports/history?siteId=${selectedSite}`);
+            const historyData = await historyRes.json();
+            setHistory(historyData.reports || []);
+
         } catch (e) {
             console.error(e);
             alert("Failed to generate report. Ensure data exists for this period.");
@@ -100,19 +133,21 @@ export default function ReportsPage() {
         if (!reportRef.current) return;
         setExporting(true);
 
-        // Allow some time for charts to finish animations
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Allow more time for charts to render and animations to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
 
         try {
+            console.log("Starting PDF generation...");
             const canvas = await html2canvas(reportRef.current, {
                 scale: 2,
                 useCORS: true,
                 backgroundColor: "#09090b",
                 logging: false,
-                windowWidth: 1200, // Force a wider capture for better layout
             });
 
+            console.log("Canvas generated successfully");
             const imgData = canvas.toDataURL("image/png");
+
             const pdf = new jsPDF({
                 orientation: "portrait",
                 unit: "px",
@@ -121,9 +156,10 @@ export default function ReportsPage() {
 
             pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
             pdf.save(`SEO-Report-${selectedSite}-${selectedMonth}.pdf`);
+            console.log("PDF saved");
         } catch (error) {
-            console.error("PDF Export Error:", error);
-            alert("Nu s-a putut genera PDF-ul. Te rugăm să încerci din nou.");
+            console.error("PDF Export Error Detailed:", error);
+            alert("Nu s-a putut genera PDF-ul. Te rugăm să încerci din nou sau să verifici consola pentru detalii.");
         } finally {
             setExporting(false);
         }
@@ -181,6 +217,36 @@ export default function ReportsPage() {
                 </div>
             </div>
 
+            {/* History Section */}
+            {history.length > 0 && !report && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <h3 className="text-lg font-medium flex items-center gap-2">
+                        <FileBarChart className="w-5 h-5 text-primary" />
+                        Saved Reports
+                    </h3>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {history.map((h: any) => (
+                            <div
+                                key={h.id}
+                                onClick={() => loadFromHistory(h)}
+                                className="p-4 rounded-xl bg-surface border border-border hover:border-primary/50 cursor-pointer transition-all hover:bg-surface-highlight/10 group relative overflow-hidden"
+                            >
+                                <div className="flex justify-between items-start mb-3">
+                                    <div className="p-2 rounded-lg bg-surface-highlight/30 text-foreground-muted group-hover:bg-primary group-hover:text-white transition-colors">
+                                        <Calendar className="w-5 h-5" />
+                                    </div>
+                                    <span className="text-xs font-mono text-foreground-muted bg-surface-highlight/20 px-2 py-1 rounded">{new Date(h.createdAt).toLocaleDateString()}</span>
+                                </div>
+                                <h4 className="font-bold text-lg tracking-tight mb-1">{h.period}</h4>
+                                <p className="text-xs text-foreground-muted">View stored analysis</p>
+
+                                <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-primary/0 via-primary/50 to-primary/0 scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Report View */}
             {report && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -197,19 +263,28 @@ export default function ReportsPage() {
                             </div>
                         </div>
 
-                        <Button
-                            variant="outline"
-                            onClick={handleExportPDF}
-                            disabled={exporting}
-                            className="gap-2 border-primary/30 hover:bg-primary/5 hover:border-primary/50 text-primary-foreground"
-                        >
-                            {exporting ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                                <Download className="w-4 h-4" />
-                            )}
-                            {exporting ? "Se generează PDF..." : "Descarcă PDF"}
-                        </Button>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setReport(null)}
+                                className="text-foreground-muted hover:text-foreground"
+                            >
+                                Close
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={handleExportPDF}
+                                disabled={exporting}
+                                className="gap-2 border-primary/30 hover:bg-primary/5 hover:border-primary/50 text-primary-foreground"
+                            >
+                                {exporting ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                    <Download className="w-4 h-4" />
+                                )}
+                                {exporting ? "Se generează PDF..." : "Descarcă PDF"}
+                            </Button>
+                        </div>
                     </div>
 
                     <div ref={reportRef} className="space-y-8 p-1"> {/* p-1 to prevent shadow clipping in PDF */}
