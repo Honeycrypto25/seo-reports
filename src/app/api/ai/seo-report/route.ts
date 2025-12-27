@@ -69,22 +69,30 @@ function buildDeltas(current: PeriodMetrics, previous?: PeriodMetrics | null) {
 }
 
 function getPreviousMonthLabel(currentLabel: string) {
-    // Tries to parse YYYY-MM and return previous month label in Romanian
-    // If not parseable, returns "Luna Anterioară"
     try {
         const [y, m] = currentLabel.split('-').map(Number);
         if (y && m) {
             let prevM = m - 1;
             let prevY = y;
             if (prevM < 1) { prevM = 12; prevY -= 1; }
-            // Simple mapping
             const months = ["IAN", "FEB", "MAR", "APR", "MAI", "IUN", "IUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
-            const currName = months[m - 1] || "Current";
             const prevName = months[prevM - 1] || "Previous";
             return `${prevName} ${prevY}`;
         }
     } catch (e) { }
     return "Luna Anterioară";
+}
+
+function getYoYMonthLabel(currentLabel: string) {
+    try {
+        const [y, m] = currentLabel.split('-').map(Number);
+        if (y && m) {
+            const prevY = y - 1;
+            const months = ["IAN", "FEB", "MAR", "APR", "MAI", "IUN", "IUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            return `${months[m - 1]} ${prevY}`;
+        }
+    } catch (e) { }
+    return "Anul Trecut";
 }
 
 function formatCurrentLabel(currentLabel: string) {
@@ -124,6 +132,7 @@ export async function POST(req: Request) {
         // Labels
         const labelCurr = formatCurrentLabel(body.periodLabel || "2025-01");
         const labelPrev = getPreviousMonthLabel(body.periodLabel || "2025-01");
+        const labelYoY = getYoYMonthLabel(body.periodLabel || "2025-01");
 
         // Pack for the model
         const pack = {
@@ -131,7 +140,8 @@ export async function POST(req: Request) {
             periodLabel: body.periodLabel || "Curent",
             labels: {
                 current: labelCurr,
-                previous: labelPrev
+                previous: labelPrev,
+                yoy: labelYoY
             },
             google: {
                 current: googleCurrent,
@@ -161,15 +171,17 @@ REGULI:
 
 TABELE COMPARATIVE (Markdown):
 Generează 2 tabele separate.
-Titlurile coloanelor trebuie să fie EXACT: "Indicator", "${labelCurr}", "${labelPrev}", "Diferență (Abs)", "Diferență (%)", "Observație".
+Titlurile coloanelor trebuie să includă și comparația cu anul trecut (YoY).
+Structura coloanelor:
+"Indicator" | "${labelCurr}" | "${labelPrev}" | "MoM %" | "${labelYoY}" | "YoY %" | "Observație"
 
 1. TABEL GOOGLE (cheie JSON: "google_table")
-   - Rânduri: Click-uri, Impresii, CTR, Poziție medie.
-   - Date din google.deltas.mom.
+   - Folosește datele din google.deltas.mom (MoM) și google.deltas.yoy (YoY).
+   - "MoM %" și "YoY %": formatează cu 2 zecimale cu semn (+12.50%). Dacă nu există date YoY, pune "N/A".
 
 2. TABEL BING (cheie JSON: "bing_table")
-   - Doar dacă Bing este conectat ("status" != "no_data_or_error" și "status" != "not_connected").
-   - Aceeași structură. Dacă nu, returnează string gol "".
+   - Doar dacă Bing este conectat ("status" != "no_data_or_error").
+   - Aceeași structură.
 
 OUTPUT OBLIGATORIU – JSON VALID:
 {

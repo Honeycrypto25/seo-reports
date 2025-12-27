@@ -354,10 +354,10 @@ export default function ReportsPage() {
 
                         {/* Analysis & Charts */}
                         <div className="grid gap-8 lg:grid-cols-2">
-                            {/* Text Analysis */}
+                            {/* Text Analysis Column */}
                             <div className="space-y-6">
                                 {report.aiReport?.google_section && (
-                                    <div className="p-6 rounded-xl bg-surface border border-border">
+                                    <div className="p-6 rounded-xl bg-surface border border-border h-full">
                                         <div className="flex items-center gap-2 mb-4 text-blue-400">
                                             <Search className="w-5 h-5" />
                                             <h3 className="font-bold">Analiză Google</h3>
@@ -368,7 +368,7 @@ export default function ReportsPage() {
                                     </div>
                                 )}
                                 {report.aiReport?.bing_section && (
-                                    <div className="p-6 rounded-xl bg-surface border border-border">
+                                    <div className="p-6 rounded-xl bg-surface border border-border h-full">
                                         <div className="flex items-center gap-2 mb-4 text-emerald-400">
                                             <Globe className="w-5 h-5" />
                                             <h3 className="font-bold">Analiză Bing</h3>
@@ -380,64 +380,107 @@ export default function ReportsPage() {
                                 )}
                             </div>
 
-                            {/* Charts */}
-                            <div className="p-6 rounded-xl bg-surface border border-border min-h-[300px]">
-                                <h3 className="font-bold mb-6 text-sm">Evoluție Zilnică Click-uri</h3>
-                                <div className="h-[250px] w-full">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={report.daily}>
-                                            <defs>
-                                                <linearGradient id="colorGsc" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                                </linearGradient>
-                                                <linearGradient id="colorBing" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                                            <XAxis
-                                                dataKey="date"
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tick={{ fill: '#71717a', fontSize: 10 }}
-                                                tickFormatter={(str: string) => str.slice(-2)}
-                                                minTickGap={30}
-                                            />
-                                            <YAxis
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tick={{ fill: '#71717a', fontSize: 10 }}
-                                                width={30}
-                                            />
-                                            <Tooltip
-                                                contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
-                                                itemStyle={{ fontSize: '12px' }}
-                                                labelStyle={{ color: '#a1a1aa', marginBottom: '4px' }}
-                                            />
-                                            <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                                            <Area
-                                                type="monotone"
-                                                dataKey="gsc.clicks"
-                                                name="Google"
-                                                stroke="#3b82f6"
-                                                fillOpacity={1}
-                                                fill="url(#colorGsc)"
-                                                strokeWidth={2}
-                                            />
-                                            <Area
-                                                type="monotone"
-                                                dataKey="bing.clicks"
-                                                name="Bing"
-                                                stroke="#10b981"
-                                                fillOpacity={1}
-                                                fill="url(#colorBing)"
-                                                strokeWidth={2}
-                                            />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
+                            {/* Charts Column */}
+                            <div className="space-y-6">
+                                {/* Google Chart */}
+                                <div className="p-6 rounded-xl bg-surface border border-border min-h-[300px]">
+                                    <h3 className="font-bold mb-6 text-sm flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                        Evoluție Zilnică Click-uri (Google)
+                                    </h3>
+                                    <div className="h-[250px] w-full">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={report.daily}>
+                                                <defs>
+                                                    <linearGradient id="colorGscOnly" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                                                <XAxis
+                                                    dataKey="date"
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fill: '#71717a', fontSize: 10 }}
+                                                    tickFormatter={(str: string) => str.slice(-2)}
+                                                    minTickGap={30}
+                                                />
+                                                <YAxis
+                                                    axisLine={false}
+                                                    tickLine={false}
+                                                    tick={{ fill: '#71717a', fontSize: 10 }}
+                                                    width={30}
+                                                />
+                                                <Tooltip
+                                                    contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
+                                                    itemStyle={{ fontSize: '12px' }}
+                                                    labelStyle={{ color: '#a1a1aa', marginBottom: '4px' }}
+                                                />
+                                                <Area
+                                                    type="monotone"
+                                                    dataKey="gsc.clicks"
+                                                    name="Google Clicks"
+                                                    stroke="#3b82f6"
+                                                    fillOpacity={1}
+                                                    fill="url(#colorGscOnly)"
+                                                    strokeWidth={2}
+                                                />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </div>
                                 </div>
+
+                                {/* Bing Chart (Conditional) */}
+                                {report.summary.bingClicks > 0 && (
+                                    <div className="p-6 rounded-xl bg-surface border border-border min-h-[300px]">
+                                        <h3 className="font-bold mb-6 text-sm flex items-center gap-2">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                            Evoluție Zilnică Click-uri (Bing)
+                                        </h3>
+                                        <div className="h-[250px] w-full">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <AreaChart data={report.daily}>
+                                                    <defs>
+                                                        <linearGradient id="colorBingOnly" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                                                    <XAxis
+                                                        dataKey="date"
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{ fill: '#71717a', fontSize: 10 }}
+                                                        tickFormatter={(str: string) => str.slice(-2)}
+                                                        minTickGap={30}
+                                                    />
+                                                    <YAxis
+                                                        axisLine={false}
+                                                        tickLine={false}
+                                                        tick={{ fill: '#71717a', fontSize: 10 }}
+                                                        width={30}
+                                                    />
+                                                    <Tooltip
+                                                        contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
+                                                        itemStyle={{ fontSize: '12px' }}
+                                                        labelStyle={{ color: '#a1a1aa', marginBottom: '4px' }}
+                                                    />
+                                                    <Area
+                                                        type="monotone"
+                                                        dataKey="bing.clicks"
+                                                        name="Bing Clicks"
+                                                        stroke="#10b981"
+                                                        fillOpacity={1}
+                                                        fill="url(#colorBingOnly)"
+                                                        strokeWidth={2}
+                                                    />
+                                                </AreaChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
