@@ -28,7 +28,6 @@ type RequestBody = {
         ctr: number;
         position?: number | null;
     }> | null;
-    // We keep bing_status for backward compatibility/explicit instructions if needed
     bing_status?: string;
 };
 
@@ -38,15 +37,6 @@ const openai = new OpenAI({
 
 function isFiniteNumber(v: any) {
     return typeof v === "number" && Number.isFinite(v);
-}
-
-function validatePeriod(p: any) {
-    if (!p || typeof p !== "object") return false;
-    // Allow 0 values, but check type
-    if (p.clicks === undefined || !isFiniteNumber(p.clicks)) return false;
-    if (p.impressions === undefined || !isFiniteNumber(p.impressions)) return false;
-    // ctr and position might be calculated later or passed
-    return true;
 }
 
 function safeDeltaPct(current: number, previous: number) {
@@ -78,6 +68,36 @@ function buildDeltas(current: PeriodMetrics, previous?: PeriodMetrics | null) {
     };
 }
 
+function getPreviousMonthLabel(currentLabel: string) {
+    // Tries to parse YYYY-MM and return previous month label in Romanian
+    // If not parseable, returns "Luna Anterioară"
+    try {
+        const [y, m] = currentLabel.split('-').map(Number);
+        if (y && m) {
+            let prevM = m - 1;
+            let prevY = y;
+            if (prevM < 1) { prevM = 12; prevY -= 1; }
+            // Simple mapping
+            const months = ["IAN", "FEB", "MAR", "APR", "MAI", "IUN", "IUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            const currName = months[m - 1] || "Current";
+            const prevName = months[prevM - 1] || "Previous";
+            return `${prevName} ${prevY}`;
+        }
+    } catch (e) { }
+    return "Luna Anterioară";
+}
+
+function formatCurrentLabel(currentLabel: string) {
+    try {
+        const [y, m] = currentLabel.split('-').map(Number);
+        if (y && m) {
+            const months = ["IAN", "FEB", "MAR", "APR", "MAI", "IUN", "IUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            return `${months[m - 1]} ${y}`;
+        }
+    } catch (e) { }
+    return currentLabel;
+}
+
 export async function POST(req: Request) {
     try {
         if (!process.env.OPENAI_API_KEY) {
@@ -86,13 +106,7 @@ export async function POST(req: Request) {
 
         const body = (await req.json()) as RequestBody;
 
-        // Basic validation
-        if (!body?.site || typeof body.site !== "string") {
-            // Fallback or error? Let's be lenient for manual testing but strict for prod
-        }
-
-        // Pre-calc deltas so model doesn’t guess math
-        // Ensure we handle potentially missing optional fields gracefully
+        // Ensure we supply defaults
         const googleCurrent = body.google?.current || { clicks: 0, impressions: 0, ctr: 0, position: 0 };
         const googlePrev = body.google?.previous || null;
         const googleYoy = body.google?.yoy || null;
@@ -107,28 +121,30 @@ export async function POST(req: Request) {
         const bingMoM = bingCurrent ? buildDeltas(bingCurrent, bingPrev) : null;
         const bingYoY = bingCurrent ? buildDeltas(bingCurrent, bingYoy) : null;
 
-        // Pack for the model (single source of truth)
+        // Labels
+        const labelCurr = formatCurrentLabel(body.periodLabel || "2025-01");
+        const labelPrev = getPreviousMonthLabel(body.periodLabel || "2025-01");
+
+        // Pack for the model
         const pack = {
             site: body.site,
             periodLabel: body.periodLabel || "Curent",
+            labels: {
+                current: labelCurr,
+                previous: labelPrev
+            },
             google: {
                 current: googleCurrent,
                 previous: googlePrev,
                 yoy: googleYoy,
-                deltas: {
-                    mom: googleMoM,
-                    yoy: googleYoY,
-                },
+                deltas: { mom: googleMoM, yoy: googleYoY },
             },
             bing: bingCurrent
                 ? {
                     current: bingCurrent,
                     previous: bingPrev,
                     yoy: bingYoy,
-                    deltas: {
-                        mom: bingMoM,
-                        yoy: bingYoY,
-                    },
+                    deltas: { mom: bingMoM, yoy: bingYoY },
                     status: body.bing_status
                 }
                 : { status: body.bing_status || 'not_connected' },
@@ -136,51 +152,36 @@ export async function POST(req: Request) {
         };
 
         const SYSTEM_PROMPT = `
-Ești un specialist SEO care redactează un raport profesional de performanță organică,
-destinat unui client final.
+Ești un specialist SEO care redactează un raport profesional de performanță organică.
 
 REGULI:
-- Nu menționa AI, algoritmi sau termeni tehnici inutili.
-- Nu inventa date. Folosește STRICT datele primite în JSON.
-- Nu recalcula valori dacă ai deja deltas (MoM / YoY) în "deltas".
-- Ton profesional, clar, orientat spre rezultate. Fără exagerări.
+- Ton profesional, clar, orientat spre rezultate.
+- Poziție medie mică = clasare mai bună.
+- Impresii scăzute cu CTR crescut = calitate mai bună a traficului.
 
-INTERPRETARE:
-- Poziție medie MAI MICĂ = clasare MAI BUNĂ.
-  Folosește „poziția medie s-a îmbunătățit” / „clasare mai bună”, nu „poziția a crescut”.
-- Dacă impresiile scad dar click-urile sau CTR cresc,
-  explică acest lucru ca o creștere a calității traficului.
-- Specifică mereu contextul comparațiilor: lună curentă vs luna anterioară (MoM) și vs aceeași lună a anului trecut (YoY).
+TABELE COMPARATIVE (Markdown):
+Generează 2 tabele separate.
+Titlurile coloanelor trebuie să fie EXACT: "Indicator", "${labelCurr}", "${labelPrev}", "Diferență (Abs)", "Diferență (%)", "Observație".
 
-CERINȚĂ NOUĂ (OBLIGATORIU):
-- Generează un tabel Markdown cu indicatorii Google pentru:
-  * Luna raportului (current) vs luna anterioară (previous)
-  În tabel să apară rânduri pentru: Click-uri, Impresii, CTR, Poziție medie.
-  Coloane: Indicator | Luna raportului | Luna anterioară | Diferență (abs) | Diferență (pct/pp) | Observație
-  Folosește datele din "deltas.mom" pentru precizie. Formatează procentele cu 2 zecimale.
-  La "Observație" pune un scurt comentariu (ex: "Creștere solidă", "Scădere ușoară", "Stabil").
+1. TABEL GOOGLE (cheie JSON: "google_table")
+   - Rânduri: Click-uri, Impresii, CTR, Poziție medie.
+   - Date din google.deltas.mom.
 
-OUTPUT OBLIGATORIU – JSON VALID (fără markdown în afară de tabel):
+2. TABEL BING (cheie JSON: "bing_table")
+   - Doar dacă Bing este conectat ("status" != "no_data_or_error" și "status" != "not_connected").
+   - Aceeași structură. Dacă nu, returnează string gol "".
+
+OUTPUT OBLIGATORIU – JSON VALID:
 {
   "title": string,
   "highlights": string[],
-  "mom_table_markdown": string,
+  "google_table": string,
+  "bing_table": string,
   "google_section": string,
   "bing_section": string,
   "trend_16_months": string,
   "executive_conclusion": string
 }
-
-CONȚINUT:
-1) title: un titlu profesionist (fără AI), ex: "Performanță SEO & Analiză Trafic Organic"
-2) highlights: 4–6 bullet points (pozitive, credibile, bazate pe date)
-3) mom_table_markdown: tabelul Google (current vs previous) descris mai sus
-4) google_section: text narativ cu rezultate + comparație MoM + YoY (dacă există)
-5) bing_section: la fel, iar dacă lipsesc date, o formulare elegantă (vezi bing.status)
-6) trend_16_months: 2–4 propoziții pe baza last16Months; identifică trendul general
-7) executive_conclusion: 2–3 propoziții, executive, orientate pe progres
-
-Returnează EXCLUSIV JSON valid.
 `.trim();
 
         const response = await openai.chat.completions.create({
@@ -193,7 +194,6 @@ Returnează EXCLUSIV JSON valid.
         });
 
         const outputText = response.choices[0].message.content?.trim();
-
         if (!outputText) throw new Error("Empty AI response");
 
         let parsed: any;
@@ -201,35 +201,24 @@ Returnează EXCLUSIV JSON valid.
             const cleanJson = outputText.replace(/```json\n|\n```/g, "").trim();
             parsed = JSON.parse(cleanJson);
         } catch {
-            return NextResponse.json(
-                { error: "Model output is not valid JSON.", raw: outputText },
-                { status: 500 }
-            );
+            return NextResponse.json({ error: "Model output is not valid JSON.", raw: outputText }, { status: 500 });
         }
-
-        // Minimal shape normalization (so UI doesn’t crash)
-        const report = {
-            title: typeof parsed.title === "string" ? parsed.title : "Performanță SEO & Analiză Trafic Organic",
-            highlights: Array.isArray(parsed.highlights) ? parsed.highlights : [],
-            mom_table_markdown: typeof parsed.mom_table_markdown === "string" ? parsed.mom_table_markdown : "",
-            google_section: typeof parsed.google_section === "string" ? parsed.google_section : "",
-            bing_section: typeof parsed.bing_section === "string" ? parsed.bing_section : "",
-            trend_16_months: typeof parsed.trend_16_months === "string" ? parsed.trend_16_months : "",
-            executive_conclusion: typeof parsed.executive_conclusion === "string" ? parsed.executive_conclusion : "",
-        };
 
         return NextResponse.json({
             success: true,
-            report,
+            report: {
+                title: parsed.title || "Raport SEO",
+                highlights: parsed.highlights || [],
+                google_table: parsed.google_table || parsed.mom_table_markdown || "",
+                bing_table: parsed.bing_table || "",
+                google_section: parsed.google_section || "",
+                bing_section: parsed.bing_section || "",
+                trend_16_months: parsed.trend_16_months || "",
+                executive_conclusion: parsed.executive_conclusion || ""
+            },
         });
     } catch (error: any) {
         console.error("AI Generation Error:", error);
-        return NextResponse.json(
-            {
-                success: false,
-                error: error?.message || "Unexpected error",
-            },
-            { status: 500 }
-        );
+        return NextResponse.json({ success: false, error: error?.message || "Error" }, { status: 500 });
     }
 }

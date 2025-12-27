@@ -299,43 +299,82 @@ export default function ReportsPage() {
                             </div>
                         )}
 
-                        {/* Comparative Table (MOM) */}
-                        {report.aiReport?.mom_table_markdown && (
-                            <div className="p-6 rounded-xl bg-surface border border-border shadow-md">
-                                <div className="flex items-center gap-2 mb-4">
-                                    <ArrowUpRight className="w-5 h-5 text-primary" />
-                                    <h3 className="text-lg font-bold">Comparație Lunară (MoM)</h3>
+                        {/* Comparative Tables (MoM) */}
+                        <div className="grid gap-6 lg:grid-cols-1">
+                            {/* Google Table */}
+                            {report.aiReport?.google_table && (
+                                <div className="p-6 rounded-xl bg-surface border border-border shadow-md">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <ArrowUpRight className="w-5 h-5 text-blue-500" />
+                                        <h3 className="text-lg font-bold">Google Performanță (MoM)</h3>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkGfm]}
+                                            components={{
+                                                table: ({ node, ...props }) => <table className="w-full text-sm text-left border-collapse" {...props} />,
+                                                thead: ({ node, ...props }) => <thead className="bg-surface-highlight text-foreground-muted uppercase text-xs" {...props} />,
+                                                tbody: ({ node, ...props }) => <tbody className="divide-y divide-border" {...props} />,
+                                                tr: ({ node, ...props }) => <tr className="hover:bg-surface-highlight/50 transition-colors" {...props} />,
+                                                th: ({ node, ...props }) => <th className="px-4 py-3 font-medium border-b border-border" {...props} />,
+                                                td: ({ node, ...props }) => <td className="px-4 py-3 border-b border-border text-foreground" {...props} />,
+                                            }}
+                                        >
+                                            {report.aiReport.google_table}
+                                        </ReactMarkdown>
+                                    </div>
                                 </div>
-                                <div className="overflow-x-auto">
-                                    <ReactMarkdown
-                                        remarkPlugins={[remarkGfm]}
-                                        components={{
-                                            table: ({ node, ...props }) => <table className="w-full text-sm text-left border-collapse" {...props} />,
-                                            thead: ({ node, ...props }) => <thead className="bg-surface-highlight text-foreground-muted uppercase text-xs" {...props} />,
-                                            tbody: ({ node, ...props }) => <tbody className="divide-y divide-border" {...props} />,
-                                            tr: ({ node, ...props }) => <tr className="hover:bg-surface-highlight/50 transition-colors" {...props} />,
-                                            th: ({ node, ...props }) => <th className="px-4 py-3 font-medium border-b border-border" {...props} />,
-                                            td: ({ node, ...props }) => <td className="px-4 py-3 border-b border-border text-foreground" {...props} />,
-                                        }}
-                                    >
-                                        {report.aiReport.mom_table_markdown}
-                                    </ReactMarkdown>
-                                </div>
-                            </div>
-                        )}
+                            )}
 
-                        {/* Google & Charts */}
+                            {/* Bing Table */}
+                            {report.aiReport?.bing_table && (
+                                <div className="p-6 rounded-xl bg-surface border border-border shadow-md">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <ArrowUpRight className="w-5 h-5 text-emerald-500" />
+                                        <h3 className="text-lg font-bold">Bing Performanță (MoM)</h3>
+                                    </div>
+                                    <div className="overflow-x-auto">
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkGfm]}
+                                            components={{
+                                                table: ({ node, ...props }) => <table className="w-full text-sm text-left border-collapse" {...props} />,
+                                                thead: ({ node, ...props }) => <thead className="bg-surface-highlight text-foreground-muted uppercase text-xs" {...props} />,
+                                                tbody: ({ node, ...props }) => <tbody className="divide-y divide-border" {...props} />,
+                                                tr: ({ node, ...props }) => <tr className="hover:bg-surface-highlight/50 transition-colors" {...props} />,
+                                                th: ({ node, ...props }) => <th className="px-4 py-3 font-medium border-b border-border" {...props} />,
+                                                td: ({ node, ...props }) => <td className="px-4 py-3 border-b border-border text-foreground" {...props} />,
+                                            }}
+                                        >
+                                            {report.aiReport.bing_table}
+                                        </ReactMarkdown>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Analysis & Charts */}
                         <div className="grid gap-8 lg:grid-cols-2">
                             {/* Text Analysis */}
                             <div className="space-y-6">
                                 {report.aiReport?.google_section && (
-                                    <div className="p-6 rounded-xl bg-surface border border-border h-full">
+                                    <div className="p-6 rounded-xl bg-surface border border-border">
                                         <div className="flex items-center gap-2 mb-4 text-blue-400">
                                             <Search className="w-5 h-5" />
-                                            <h3 className="font-bold">Analiză Google Search Console</h3>
+                                            <h3 className="font-bold">Analiză Google</h3>
                                         </div>
                                         <div className="prose prose-invert max-w-none text-foreground-muted text-sm leading-relaxed">
                                             <ReactMarkdown>{report.aiReport.google_section}</ReactMarkdown>
+                                        </div>
+                                    </div>
+                                )}
+                                {report.aiReport?.bing_section && (
+                                    <div className="p-6 rounded-xl bg-surface border border-border">
+                                        <div className="flex items-center gap-2 mb-4 text-emerald-400">
+                                            <Globe className="w-5 h-5" />
+                                            <h3 className="font-bold">Analiză Bing</h3>
+                                        </div>
+                                        <div className="prose prose-invert max-w-none text-foreground-muted text-sm leading-relaxed">
+                                            <ReactMarkdown>{report.aiReport.bing_section}</ReactMarkdown>
                                         </div>
                                     </div>
                                 )}
@@ -402,16 +441,38 @@ export default function ReportsPage() {
                             </div>
                         </div>
 
-                        {/* Summary Mini Cards */}
-                        {/* Summary Mini Cards */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-4 rounded-xl bg-surface/50 border border-border">
-                                <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-tighter">Total Clicks</p>
-                                <p className="text-2xl font-bold">{(report.summary.gscClicks + report.summary.bingClicks).toLocaleString()}</p>
+                        {/* Detailed Stats Cards (Google vs Bing) */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {/* Google Stats */}
+                            <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                    <p className="text-[10px] font-bold text-blue-400 uppercase">Google Clicks</p>
+                                </div>
+                                <p className="text-xl font-bold">{report.summary.gscClicks.toLocaleString()}</p>
                             </div>
-                            <div className="p-4 rounded-xl bg-surface/50 border border-border">
-                                <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-tighter">Total Impressions</p>
-                                <p className="text-2xl font-bold">{(report.summary.gscImpressions + report.summary.bingImpressions).toLocaleString()}</p>
+                            <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                    <p className="text-[10px] font-bold text-blue-400 uppercase">Google Impres.</p>
+                                </div>
+                                <p className="text-xl font-bold">{report.summary.gscImpressions.toLocaleString()}</p>
+                            </div>
+
+                            {/* Bing Stats */}
+                            <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                    <p className="text-[10px] font-bold text-emerald-400 uppercase">Bing Clicks</p>
+                                </div>
+                                <p className="text-xl font-bold">{report.summary.bingClicks.toLocaleString()}</p>
+                            </div>
+                            <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                    <p className="text-[10px] font-bold text-emerald-400 uppercase">Bing Impres.</p>
+                                </div>
+                                <p className="text-xl font-bold">{report.summary.bingImpressions.toLocaleString()}</p>
                             </div>
                         </div>
 
