@@ -168,33 +168,52 @@ export async function POST(request: Request) {
             : (!bingRaw || bingRaw.length === 0) ? 'no_data_or_error'
                 : 'active';
 
-        const gscAI = {
-            current: gscPayload.current,
-            mom: calculateDeltas(gscPayload.current, gscPayload.previous),
-            yoy: calculateDeltas(gscPayload.current, gscPayload.yoy)
-        };
-
-        const bingAI = bingCurrent ? {
-            current: bingCurrent,
-            mom: calculateDeltas(bingCurrent, bingPrevious),
-            yoy: calculateDeltas(bingCurrent, bingYoy)
-        } : null;
-
-        // 5. Call the new AI Specialized Endpoint
         const host = request.headers.get("host") || "localhost:3000";
         const proto = host.includes("localhost") ? "http" : "https";
+
+        // Create structured payloads for the new AI endpoint
+        const aiPayload = {
+            site: normalizedId,
+            periodLabel: `${year}-${month.toString().padStart(2, '0')}`,
+            google: {
+                current: {
+                    clicks: gscPayload.current.clicks,
+                    impressions: gscPayload.current.impressions,
+                    ctr: gscPayload.current.ctr,
+                    position: gscPayload.current.position
+                },
+                previous: gscPayload.previous ? {
+                    clicks: gscPayload.previous.clicks,
+                    impressions: gscPayload.previous.impressions,
+                    ctr: gscPayload.previous.ctr,
+                    position: gscPayload.previous.position
+                } : null,
+                yoy: gscPayload.yoy ? {
+                    clicks: gscPayload.yoy.clicks,
+                    impressions: gscPayload.yoy.impressions,
+                    ctr: gscPayload.yoy.ctr,
+                    position: gscPayload.yoy.position
+                } : null
+            },
+            bing: bingCurrent ? {
+                current: { clicks: bingCurrent.clicks, impressions: bingCurrent.impressions, ctr: bingCurrent.ctr },
+                previous: bingPrevious ? { clicks: bingPrevious.clicks, impressions: bingPrevious.impressions, ctr: bingPrevious.ctr } : null,
+                yoy: bingYoy ? { clicks: bingYoy.clicks, impressions: bingYoy.impressions, ctr: bingYoy.ctr } : null
+            } : null,
+            bing_status: bingStatus,
+            last16Months: last16Months.map(m => ({
+                month: m.month,
+                clicks: m.clicks,
+                impressions: m.impressions,
+                ctr: m.ctr,
+                position: m.position
+            }))
+        };
 
         const aiRes = await fetch(`${proto}://${host}/api/ai/seo-report`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                site: normalizedId,
-                period: `${year}-${month.toString().padStart(2, '0')}`,
-                google: gscAI,
-                bing: bingAI,
-                bing_status: bingStatus, // Tell AI exactly what's up
-                trend_16_months: last16Months.length > 3 ? (last16Months[last16Months.length - 1].clicks > last16Months[0].clicks ? "upward" : "mixed") : "neutral"
-            })
+            body: JSON.stringify(aiPayload)
         });
 
         const aiData = await aiRes.json();

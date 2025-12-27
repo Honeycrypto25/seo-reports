@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import remarkGfm from 'remark-gfm';
 import { normalizeDomain } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Search, Globe, FileBarChart, Loader2, Calendar, Sparkles, ShieldCheck, Download } from "lucide-react";
+import { Search, Globe, FileBarChart, Loader2, Calendar, Sparkles, ShieldCheck, Download, ArrowUpRight, TrendingUp, CheckCircle2 } from "lucide-react";
 import {
     XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
@@ -269,130 +270,147 @@ export default function ReportsPage() {
                     )}
 
                     <div ref={reportRef} className="space-y-8 p-1"> {/* p-1 to prevent shadow clipping in PDF */}
-                        {/* AI Highlights Header */}
-                        {report.aiReport && report.aiReport.highlights && (
-                            <div className="p-6 rounded-xl bg-gradient-to-br from-primary/10 via-surface to-surface border border-primary/20 shadow-lg relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors duration-500" />
 
-                                <div className="flex items-center gap-3 mb-6 relative">
-                                    <div className="p-2 rounded-lg bg-primary/20 text-primary">
-                                        <Sparkles className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold tracking-tight">Insights & Performanță</h3>
-                                        <p className="text-xs font-dm text-primary uppercase tracking-widest font-semibold opacity-80">EXECUTIVE SUMMARY</p>
-                                    </div>
-                                </div>
+                        {/* Title & Highlights */}
+                        {report.aiReport && (
+                            <div className="space-y-6">
+                                <div className="p-6 rounded-xl bg-gradient-to-br from-primary/10 via-surface to-surface border border-primary/20 shadow-lg relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors duration-500" />
 
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    {report.aiReport.highlights.map((h: string, i: number) => (
-                                        <div key={i} className="flex gap-3 items-start p-4 rounded-xl bg-surface/40 border border-border/50 hover:border-primary/50 transition-all group">
-                                            <div className="mt-1 w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(99,102,241,0.8)] shrink-0" />
-                                            <p className="text-sm text-foreground leading-relaxed font-medium">{h}</p>
+                                    <div className="flex items-center gap-3 mb-6 relative">
+                                        <div className="p-2 rounded-lg bg-primary/20 text-primary">
+                                            <Sparkles className="w-5 h-5" />
                                         </div>
-                                    ))}
+                                        <div>
+                                            <h3 className="text-xl font-bold tracking-tight">Insights & Performanță</h3>
+                                            <p className="text-xs font-dm text-primary uppercase tracking-widest font-semibold opacity-80">EXECUTIVE SUMMARY</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-4 sm:grid-cols-2 relative">
+                                        {report.aiReport.highlights?.map((h: string, i: number) => (
+                                            <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-surface/50 border border-primary/10 hover:border-primary/30 transition-colors">
+                                                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                                                <p className="text-sm text-foreground/90 leading-relaxed">{h}</p>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* Platform Sections & Final Summary */}
-                        <div className="grid gap-8 lg:grid-cols-3">
-                            <div className="lg:col-span-2 space-y-8">
-                                {/* Detailed Analysis */}
-                                <div className="p-6 rounded-xl bg-surface border border-border space-y-6">
-                                    {report.aiReport?.google_section && (
-                                        <div className="space-y-3">
-                                            <div className="flex items-center gap-2 text-[#4285F4]">
-                                                <Search className="w-5 h-5" />
-                                                <h4 className="font-bold text-lg">Analiză Google Search Console</h4>
-                                            </div>
-                                            <div className="prose prose-invert max-w-none text-foreground-muted text-sm leading-relaxed">
-                                                <ReactMarkdown>{report.aiReport.google_section}</ReactMarkdown>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="h-px bg-border/50" />
-
-                                    {report.aiReport?.bing_section && (
-                                        <div className="space-y-3">
-                                            <div className="flex items-center gap-2 text-[#00897B]">
-                                                <Globe className="w-5 h-5" />
-                                                <h4 className="font-bold text-lg">Analiză Bing Webmaster</h4>
-                                            </div>
-                                            <div className="prose prose-invert max-w-none text-foreground-muted text-sm leading-relaxed">
-                                                <ReactMarkdown>{report.aiReport.bing_section}</ReactMarkdown>
-                                            </div>
-                                        </div>
-                                    )}
+                        {/* Comparative Table (MOM) */}
+                        {report.aiReport?.mom_table_markdown && (
+                            <div className="p-6 rounded-xl bg-surface border border-border shadow-md">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <ArrowUpRight className="w-5 h-5 text-primary" />
+                                    <h3 className="text-lg font-bold">Comparație Lunară (MoM)</h3>
                                 </div>
+                                <div className="overflow-x-auto">
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkGfm]}
+                                        components={{
+                                            table: ({ node, ...props }) => <table className="w-full text-sm text-left border-collapse" {...props} />,
+                                            thead: ({ node, ...props }) => <thead className="bg-surface-highlight text-foreground-muted uppercase text-xs" {...props} />,
+                                            tbody: ({ node, ...props }) => <tbody className="divide-y divide-border" {...props} />,
+                                            tr: ({ node, ...props }) => <tr className="hover:bg-surface-highlight/50 transition-colors" {...props} />,
+                                            th: ({ node, ...props }) => <th className="px-4 py-3 font-medium border-b border-border" {...props} />,
+                                            td: ({ node, ...props }) => <td className="px-4 py-3 border-b border-border text-foreground" {...props} />,
+                                        }}
+                                    >
+                                        {report.aiReport.mom_table_markdown}
+                                    </ReactMarkdown>
+                                </div>
+                            </div>
+                        )}
 
-                                {/* Main Chart */}
-                                <div className="p-6 rounded-xl bg-surface border border-border h-[400px]">
-                                    <h3 className="text-lg font-medium mb-6">Evoluție Zilnică Click-uri</h3>
-                                    <ResponsiveContainer width="100%" height="90%">
-                                        <AreaChart data={report.daily} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                        {/* Google & Charts */}
+                        <div className="grid gap-8 lg:grid-cols-2">
+                            {/* Text Analysis */}
+                            <div className="space-y-6">
+                                {report.aiReport?.google_section && (
+                                    <div className="p-6 rounded-xl bg-surface border border-border h-full">
+                                        <div className="flex items-center gap-2 mb-4 text-blue-400">
+                                            <Search className="w-5 h-5" />
+                                            <h3 className="font-bold">Analiză Google Search Console</h3>
+                                        </div>
+                                        <div className="prose prose-invert max-w-none text-foreground-muted text-sm leading-relaxed">
+                                            <ReactMarkdown>{report.aiReport.google_section}</ReactMarkdown>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Charts */}
+                            <div className="p-6 rounded-xl bg-surface border border-border min-h-[300px]">
+                                <h3 className="font-bold mb-6 text-sm">Evoluție Zilnică Click-uri</h3>
+                                <div className="h-[250px] w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={report.daily}>
                                             <defs>
                                                 <linearGradient id="colorGsc" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#4285F4" stopOpacity={0.3} />
-                                                    <stop offset="95%" stopColor="#4285F4" stopOpacity={0} />
+                                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                                                 </linearGradient>
                                                 <linearGradient id="colorBing" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#00897B" stopOpacity={0.3} />
-                                                    <stop offset="95%" stopColor="#00897B" stopOpacity={0} />
+                                                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                                                 </linearGradient>
                                             </defs>
-                                            <XAxis dataKey="date" stroke="#52525b" tickFormatter={(str) => str.slice(8)} />
-                                            <YAxis stroke="#52525b" />
                                             <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                                            <XAxis
+                                                dataKey="date"
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tick={{ fill: '#71717a', fontSize: 10 }}
+                                                tickFormatter={(str: string) => str.slice(-2)}
+                                                minTickGap={30}
+                                            />
+                                            <YAxis
+                                                axisLine={false}
+                                                tickLine={false}
+                                                tick={{ fill: '#71717a', fontSize: 10 }}
+                                                width={30}
+                                            />
                                             <Tooltip
                                                 contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
-                                                itemStyle={{ color: '#e4e4e7' }}
+                                                itemStyle={{ fontSize: '12px' }}
+                                                labelStyle={{ color: '#a1a1aa', marginBottom: '4px' }}
                                             />
-                                            <Legend />
-                                            <Area type="monotone" dataKey="gsc.clicks" name="Google" stroke="#4285F4" fillOpacity={1} fill="url(#colorGsc)" />
-                                            <Area type="monotone" dataKey="bing.clicks" name="Bing" stroke="#00897B" fillOpacity={1} fill="url(#colorBing)" />
+                                            <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                                            <Area
+                                                type="monotone"
+                                                dataKey="gsc.clicks"
+                                                name="Google"
+                                                stroke="#3b82f6"
+                                                fillOpacity={1}
+                                                fill="url(#colorGsc)"
+                                                strokeWidth={2}
+                                            />
+                                            <Area
+                                                type="monotone"
+                                                dataKey="bing.clicks"
+                                                name="Bing"
+                                                stroke="#10b981"
+                                                fillOpacity={1}
+                                                fill="url(#colorBing)"
+                                                strokeWidth={2}
+                                            />
                                         </AreaChart>
                                     </ResponsiveContainer>
                                 </div>
                             </div>
+                        </div>
 
-                            {/* Sidebar Analysis */}
-                            <div className="space-y-8">
-                                {/* Executive Conclusion Card */}
-                                {report.aiReport?.executive_conclusion && (
-                                    <div className="p-6 rounded-xl bg-primary border border-primary/20 text-white shadow-xl shadow-primary/10">
-                                        <h4 className="font-bold mb-3 flex items-center gap-2">
-                                            <ShieldCheck className="w-5 h-5" />
-                                            Concluzie Executivă
-                                        </h4>
-                                        <p className="text-sm leading-relaxed opacity-90 italic">
-                                            "{report.aiReport.executive_conclusion}"
-                                        </p>
-                                    </div>
-                                )}
-
-                                {/* Trend Card */}
-                                {report.aiReport?.trend_16_months && (
-                                    <div className="p-6 rounded-xl bg-surface border border-border">
-                                        <h4 className="font-bold mb-3 text-foreground-muted uppercase text-xs tracking-widest">Trend pe 16 Luni</h4>
-                                        <p className="text-sm text-foreground leading-relaxed">
-                                            {report.aiReport.trend_16_months}
-                                        </p>
-                                    </div>
-                                )}
+                        {/* Summary Mini Cards */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="p-4 rounded-xl bg-surface/50 border border-border">
+                                <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-tighter">Total Clicks</p>
+                                <p className="text-2xl font-bold">{(report.summary.gscClicks + report.summary.bingClicks).toLocaleString()}</p>
                             </div>
-
-                            {/* Summary Mini Cards */}
-                            <div className="grid grid-cols-1 gap-4">
-                                <div className="p-4 rounded-xl bg-surface/50 border border-border">
-                                    <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-tighter">Total Clicks</p>
-                                    <p className="text-2xl font-bold">{(report.summary.gscClicks + report.summary.bingClicks).toLocaleString()}</p>
-                                </div>
-                                <div className="p-4 rounded-xl bg-surface/50 border border-border">
-                                    <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-tighter">Total Impressions</p>
-                                    <p className="text-2xl font-bold">{(report.summary.gscImpressions + report.summary.bingImpressions).toLocaleString()}</p>
-                                </div>
+                            <div className="p-4 rounded-xl bg-surface/50 border border-border">
+                                <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-tighter">Total Impressions</p>
+                                <p className="text-2xl font-bold">{(report.summary.gscImpressions + report.summary.bingImpressions).toLocaleString()}</p>
                             </div>
                         </div>
                     </div>
