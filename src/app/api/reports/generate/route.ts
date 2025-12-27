@@ -71,8 +71,9 @@ export async function POST(request: Request) {
             // Extract timestamp if specific format, or generic ISO
             let dateStr = row.Date;
             if (typeof dateStr === 'string' && dateStr.includes("/Date(")) {
-                const ts = parseInt(dateStr.match(/\d+/)[0]);
-                dateStr = new Date(ts).toISOString().split('T')[0];
+                const match = dateStr.match(/\d+/);
+                const ts = match ? parseInt(match[0]) : 0;
+                dateStr = ts ? new Date(ts).toISOString().split('T')[0] : "";
             } else if (dateStr) {
                 dateStr = new Date(dateStr).toISOString().split('T')[0];
             }
