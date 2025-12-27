@@ -53,10 +53,31 @@ export async function getBingPerformance(
         });
 
         if (response.status === 404 && retry) {
-            // Bing is picky about trailing slashes. If it failed, try the opposite.
-            const altUrl = siteUrl.endsWith('/') ? siteUrl.slice(0, -1) : `${siteUrl}/`;
-            console.log(`Bing 404 for ${siteUrl}, retrying with ${altUrl}`);
-            return getBingPerformance(apiKey, altUrl, false);
+            // Bing is picky about trailing slashes AND www.. 
+            // 1. Try toggling slash
+            let altUrl = siteUrl.endsWith('/') ? siteUrl.slice(0, -1) : `${siteUrl}/`;
+            console.log(`Bing 404 for ${siteUrl}, retrying with slash toggle: ${altUrl}`);
+
+            // recurse with retry=false (so we don't loop forever, but wait.. we want to try www too)
+            // Let's do a sequence manually here to avoid recursion hell with one flag.
+
+            let res2 = await fetch(`${endpoint}?siteUrl=${encodeURIComponent(altUrl)}&apikey=${apiKey}`, { method: "GET" });
+            if (res2.ok) return (await res2.json()).d;
+
+            // 2. Try toggling www
+            const hasWww = siteUrl.includes("www.");
+            const wwwUrl = hasWww ? siteUrl.replace("www.", "") : siteUrl.replace("://", "://www.");
+            console.log(`Bing 404, retrying with www toggle: ${wwwUrl}`);
+
+            let res3 = await fetch(`${endpoint}?siteUrl=${encodeURIComponent(wwwUrl)}&apikey=${apiKey}`, { method: "GET" });
+            if (res3.ok) return (await res3.json()).d;
+
+            // 3. Try www + slash toggle
+            const wwwSlashUrl = wwwUrl.endsWith('/') ? wwwUrl.slice(0, -1) : `${wwwUrl}/`;
+            let res4 = await fetch(`${endpoint}?siteUrl=${encodeURIComponent(wwwSlashUrl)}&apikey=${apiKey}`, { method: "GET" });
+            if (res4.ok) return (await res4.json()).d;
+
+            return []; // Give up
         }
 
         if (!response.ok) {
