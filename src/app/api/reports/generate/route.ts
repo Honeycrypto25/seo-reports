@@ -5,12 +5,10 @@ import { getGSCPerformance } from "@/lib/gsc";
 import { getBingPerformance, getBingSites } from "@/lib/bing";
 import { normalizeDomain } from "@/lib/utils";
 import { google } from "googleapis";
-import { generateSEOInsight } from "@/lib/ai";
+import { subMonths, startOfMonth, endOfMonth, format, subYears } from "date-fns";
 
 export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
-
-    // Note: For Bing we rely on the ENV apiKey for now.
     const bingApiKey = process.env.BING_API_KEY;
 
     if (!session || !session.accessToken) {
@@ -25,11 +23,9 @@ export async function POST(request: Request) {
         }
 
         // 1. Resolve Actual URLs
-        // We need to find the specific URL GSC knows and the one Bing knows.
         let gscUrl = "";
         let bingUrl = "";
 
-        // 1a. Find GSC Url
         const auth = new google.auth.OAuth2();
         auth.setCredentials({ access_token: session.accessToken as string });
         const searchConsole = google.webmasters({ version: "v3", auth });
@@ -39,37 +35,76 @@ export async function POST(request: Request) {
         const matchedGsc = gscSites.find((s: any) => normalizeDomain(s.siteUrl) === normalizedId);
         if (matchedGsc) gscUrl = matchedGsc.siteUrl!;
 
-        // 1b. Find Bing Url
         if (bingApiKey) {
             const bingSites = await getBingSites(bingApiKey);
             const matchedBing = bingSites.find((s) => normalizeDomain(s.Url) === normalizedId);
             if (matchedBing) bingUrl = matchedBing.Url;
         }
 
-        if (!gscUrl || !bingUrl) {
-            return NextResponse.json({
-                error: "Site not found in one or both services.",
-                details: { gscUrl, bingUrl }
-            }, { status: 404 });
+        if (!gscUrl) {
+            return NextResponse.json({ error: "Site not found in Google Search Console." }, { status: 404 });
         }
 
-        // 2. Prepare Dates
-        const startDate = `${year}-${month.toString().padStart(2, '0')}-01`;
-        // Get last day of month
-        const lastDay = new Date(parseInt(year), parseInt(month), 0).getDate();
-        const endDate = `${year}-${month.toString().padStart(2, '0')}-${lastDay}`;
+        // 2. Prepare Date Ranges
+        const targetDate = new Date(parseInt(year), parseInt(month) - 1, 15);
+        const curStart = format(startOfMonth(targetDate), "yyyy-MM-dd");
+        const curEnd = format(endOfMonth(targetDate), "yyyy-MM-dd");
+
+        const prevDate = subMonths(targetDate, 1);
+        const prevStart = format(startOfMonth(prevDate), "yyyy-MM-dd");
+        const prevEnd = format(endOfMonth(prevDate), "yyyy-MM-dd");
+
+        const yoyDate = subYears(targetDate, 1);
+        const yoyStart = format(startOfMonth(yoyDate), "yyyy-MM-dd");
+        const yoyEnd = format(endOfMonth(yoyDate), "yyyy-MM-dd");
+
+        const sixteenMonthsStart = format(startOfMonth(subMonths(targetDate, 15)), "yyyy-MM-dd");
 
         // 3. Fetch Data in Parallel
-        const [gscData, bingDataRaw] = await Promise.all([
-            getGSCPerformance(session.accessToken as string, gscUrl, startDate, endDate),
-            bingApiKey ? getBingPerformance(bingApiKey, bingUrl) : Promise.resolve([])
+        const fetchBing = (url: string, start: string, end: string) => {
+            if (!bingApiKey || !url) return Promise.resolve([]);
+            return getBingPerformance(bingApiKey, url);
+        };
+
+        const [
+            gscCurrent,
+            gscPrevious,
+            gscYoy,
+            gscSixteen,
+            bingRaw
+        ] = await Promise.all([
+            getGSCPerformance(session.accessToken as string, gscUrl, curStart, curEnd),
+            getGSCPerformance(session.accessToken as string, gscUrl, prevStart, prevEnd),
+            getGSCPerformance(session.accessToken as string, gscUrl, yoyStart, yoyEnd),
+            getGSCPerformance(session.accessToken as string, gscUrl, sixteenMonthsStart, curEnd, ["month"]),
+            fetchBing(bingUrl, curStart, curEnd)
         ]);
 
-        // 4. Process & Merge Data
-        // Bing returns a generic series, often with 'Date' in format like "/Date(1623456780000)/"
-        // We need to normalize Bing dates.
-        const processedBing = bingDataRaw.map((row: any) => {
-            // Extract timestamp if specific format, or generic ISO
+        // 4. Transform Data for the new AI endpoint
+        const summarizeGSC = (rows: any[]) => {
+            const clicks = rows.reduce((acc, r) => acc + (r.clicks || 0), 0);
+            const impressions = rows.reduce((acc, r) => acc + (r.impressions || 0), 0);
+            const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+            const sumPos = rows.reduce((acc, r) => acc + (r.position || 0), 0);
+            const position = rows.length > 0 ? sumPos / rows.length : null;
+            return { clicks, impressions, ctr, position };
+        };
+
+        const gscPayload = {
+            current: summarizeGSC(gscCurrent),
+            previous: gscPrevious.length ? summarizeGSC(gscPrevious) : null,
+            yoy: gscYoy.length ? summarizeGSC(gscYoy) : null,
+            last16Months: gscSixteen.map((r: any) => ({
+                month: r.keys[0].substring(0, 7),
+                clicks: r.clicks,
+                impressions: r.impressions,
+                ctr: r.ctr * 100,
+                position: r.position
+            }))
+        };
+
+        // Bing Data Processing (Note: Bing API GetSiteStats is tricky, usually returns 6 months)
+        const processedBing = bingRaw.map((row: any) => {
             let dateStr = row.Date;
             if (typeof dateStr === 'string' && dateStr.includes("/Date(")) {
                 const match = dateStr.match(/\d+/);
@@ -79,55 +114,57 @@ export async function POST(request: Request) {
                 dateStr = new Date(dateStr).toISOString().split('T')[0];
             }
             return { ...row, date: dateStr };
-        }).filter((r: any) => r.date >= startDate && r.date <= endDate);
-
-        // Create a daily map
-        const dailyData: any[] = [];
-        const days = parseInt(lastDay.toString());
-
-        for (let d = 1; d <= days; d++) {
-            const dateKey = `${year}-${month.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-
-            const gscRow = gscData.find((r: any) => r.keys[0] === dateKey); // keys[0] is date dimension
-            const bingRow = processedBing.find((r: any) => r.date === dateKey);
-
-            dailyData.push({
-                date: dateKey,
-                gsc: {
-                    clicks: gscRow?.clicks || 0,
-                    impressions: gscRow?.impressions || 0,
-                    ctr: gscRow?.ctr || 0,
-                    position: gscRow?.position || 0
-                },
-                bing: {
-                    clicks: bingRow?.Clicks || 0,
-                    impressions: bingRow?.Impressions || 0,
-                    ctr: 0, // Bing might not strictly return CTR in this endpoint, usually computed
-                }
-            });
-        }
-
-        // Compute Totals
-        const summary = dailyData.reduce((acc, day) => ({
-            gscClicks: acc.gscClicks + day.gsc.clicks,
-            gscImpressions: acc.gscImpressions + day.gsc.impressions,
-            bingClicks: acc.bingClicks + day.bing.clicks,
-            bingImpressions: acc.bingImpressions + day.bing.impressions,
-        }), { gscClicks: 0, gscImpressions: 0, bingClicks: 0, bingImpressions: 0 });
-
-        // 5. Generate AI Insights
-        const aiInsight = await generateSEOInsight({
-            site: normalizedId,
-            period: `${year}-${month}`,
-            summary
         });
 
+        const filterBing = (start: string, end: string) => {
+            const filtered = processedBing.filter((r: any) => r.date >= start && r.date <= end);
+            const clicks = filtered.reduce((acc: number, r: any) => acc + (r.Clicks || 0), 0);
+            const impressions = filtered.reduce((acc: number, r: any) => acc + (r.Impressions || 0), 0);
+            const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+            return { clicks, impressions, ctr, position: null };
+        };
+
+        const bingPayload = bingUrl ? {
+            current: filterBing(curStart, curEnd),
+            previous: filterBing(prevStart, prevEnd),
+            yoy: filterBing(yoyStart, yoyEnd),
+            last16Months: null // Bing doesn't easily return 16 months in one go without pagination
+        } : null;
+
+        // 5. Call the new AI Specialized Endpoint
+        const host = request.headers.get("host") || "localhost:3000";
+        const proto = host.includes("localhost") ? "http" : "https";
+
+        const aiRes = await fetch(`${proto}://${host}/api/ai/seo-report`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                site: normalizedId,
+                month: `${year}-${month.toString().padStart(2, '0')}`,
+                google: gscPayload,
+                bing: bingPayload
+            })
+        });
+
+        const aiData = await aiRes.json();
+
+        // 6. Return combined report
         return NextResponse.json({
             period: { year, month },
             site: normalizedId,
-            summary,
-            daily: dailyData,
-            aiInsight
+            summary: {
+                gscClicks: gscPayload.current.clicks,
+                gscImpressions: gscPayload.current.impressions,
+                bingClicks: bingPayload?.current.clicks || 0,
+                bingImpressions: bingPayload?.current.impressions || 0,
+            },
+            daily: gscCurrent.map((r: any) => ({
+                date: r.keys[0],
+                gsc: { clicks: r.clicks, impressions: r.impressions, ctr: r.ctr, position: r.position },
+                bing: { clicks: 0, impressions: 0, ctr: 0 } // Daily bing would require another endpoint
+            })),
+            aiReport: aiData.report,
+            summaryCards: aiData.summary_cards
         });
 
     } catch (error) {

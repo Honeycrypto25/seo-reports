@@ -3,11 +3,10 @@
 import { useEffect, useState } from "react";
 import { normalizeDomain } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Search, Globe, FileBarChart, Loader2, Calendar } from "lucide-react";
+import { Search, Globe, FileBarChart, Loader2, Calendar, Sparkles, ShieldCheck } from "lucide-react";
 import {
-    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
+    XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
-import { Sparkles } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 
 interface ReadySite {
@@ -149,97 +148,134 @@ export default function ReportsPage() {
             {report && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-                    {/* Summary Cards */}
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                        <div className="p-6 rounded-xl bg-surface border border-border relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <Search className="h-12 w-12 text-[#4285F4]" />
-                            </div>
-                            <p className="text-sm font-medium text-foreground-muted">Google Clicks</p>
-                            <p className="text-3xl font-bold text-foreground mt-2">{report.summary.gscClicks.toLocaleString()}</p>
-                            <div className="mt-2 h-1 w-full bg-[#4285F4]/20 rounded-full overflow-hidden">
-                                <div className="h-full bg-[#4285F4]" style={{ width: '100%' }}></div>
-                            </div>
-                        </div>
-
-                        <div className="p-6 rounded-xl bg-surface border border-border relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <Search className="h-12 w-12 text-[#4285F4]" />
-                            </div>
-                            <p className="text-sm font-medium text-foreground-muted">Google Impressions</p>
-                            <p className="text-3xl font-bold text-foreground mt-2">{((report.summary.gscImpressions / 1000).toFixed(1))}k</p>
-                        </div>
-
-                        <div className="p-6 rounded-xl bg-surface border border-border relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <Globe className="h-12 w-12 text-[#00897B]" />
-                            </div>
-                            <p className="text-sm font-medium text-foreground-muted">Bing Clicks</p>
-                            <p className="text-3xl font-bold text-foreground mt-2">{report.summary.bingClicks.toLocaleString()}</p>
-                            <div className="mt-2 h-1 w-full bg-[#00897B]/20 rounded-full overflow-hidden">
-                                <div className="h-full bg-[#00897B]" style={{ width: '100%' }}></div>
-                            </div>
-                        </div>
-
-                        <div className="p-6 rounded-xl bg-surface border border-border relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <Globe className="h-12 w-12 text-[#00897B]" />
-                            </div>
-                            <p className="text-sm font-medium text-foreground-muted">Bing Impressions</p>
-                            <p className="text-3xl font-bold text-foreground mt-2">{((report.summary.bingImpressions / 1000).toFixed(1))}k</p>
-                        </div>
-                    </div>
-
-                    {/* AI Insights Section */}
-                    {report.aiInsight && (
-                        <div className="p-6 rounded-xl border border-primary/20 bg-primary/5 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                                <Sparkles className="h-24 w-24 text-primary" />
+                    {/* AI Highlights Header */}
+                    {report.aiReport && report.aiReport.highlights && (
+                        <div className="p-8 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-background to-accent/5 relative overflow-hidden shadow-2xl">
+                            <div className="absolute top-0 right-0 p-6 opacity-20 pointer-events-none">
+                                <Sparkles className="h-32 w-32 text-primary" />
                             </div>
 
-                            <div className="flex items-center gap-2 mb-4">
-                                <div className="p-1.5 rounded-lg bg-primary/20">
-                                    <Sparkles className="h-5 w-5 text-primary" />
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-2 rounded-xl bg-primary/20 shadow-inner">
+                                    <Sparkles className="h-6 w-6 text-primary" />
                                 </div>
-                                <h3 className="text-xl font-bold text-foreground">AI Intelligence Report</h3>
-                                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-primary text-white rounded">AI Engine</span>
+                                <div>
+                                    <h3 className="text-2xl font-black text-foreground tracking-tight">Puncte Forte & Analiză AI</h3>
+                                    <p className="text-xs text-primary font-bold uppercase tracking-widest">Premium Intelligence Engine</p>
+                                </div>
                             </div>
 
-                            <div className="prose prose-invert max-w-none text-foreground-muted leading-relaxed">
-                                <ReactMarkdown>{report.aiInsight}</ReactMarkdown>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {report.aiReport.highlights.map((h: string, i: number) => (
+                                    <div key={i} className="flex gap-3 items-start p-4 rounded-xl bg-surface/40 border border-border/50 hover:border-primary/50 transition-all group">
+                                        <div className="mt-1 w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(99,102,241,0.8)] shrink-0" />
+                                        <p className="text-sm text-foreground leading-relaxed font-medium">{h}</p>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}
 
-                    {/* Main Chart */}
-                    <div className="p-6 rounded-xl bg-surface border border-border h-[400px]">
-                        <h3 className="text-lg font-medium mb-6">Traffic Comparison</h3>
-                        <ResponsiveContainer width="100%" height="90%">
-                            <AreaChart data={report.daily} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                                <defs>
-                                    <linearGradient id="colorGsc" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#4285F4" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#4285F4" stopOpacity={0} />
-                                    </linearGradient>
-                                    <linearGradient id="colorBing" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#00897B" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#00897B" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <XAxis dataKey="date" stroke="#52525b" tickFormatter={(str) => str.slice(8)} />
-                                <YAxis stroke="#52525b" />
-                                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a' }}
-                                    itemStyle={{ color: '#e4e4e7' }}
-                                />
-                                <Legend />
-                                <Area type="monotone" dataKey="gsc.clicks" name="Google Clicks" stroke="#4285F4" fillOpacity={1} fill="url(#colorGsc)" />
-                                <Area type="monotone" dataKey="bing.clicks" name="Bing Clicks" stroke="#00897B" fillOpacity={1} fill="url(#colorBing)" />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
+                    {/* Platform Sections & Final Summary */}
+                    <div className="grid gap-8 lg:grid-cols-3">
+                        <div className="lg:col-span-2 space-y-8">
+                            {/* Detailed Analysis */}
+                            <div className="p-6 rounded-xl bg-surface border border-border space-y-6">
+                                {report.aiReport?.google_section && (
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2 text-[#4285F4]">
+                                            <Search className="w-5 h-5" />
+                                            <h4 className="font-bold text-lg">Analiză Google Search Console</h4>
+                                        </div>
+                                        <div className="prose prose-invert max-w-none text-foreground-muted text-sm leading-relaxed">
+                                            <ReactMarkdown>{report.aiReport.google_section}</ReactMarkdown>
+                                        </div>
+                                    </div>
+                                )}
 
+                                <div className="h-px bg-border/50" />
+
+                                {report.aiReport?.bing_section && (
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-2 text-[#00897B]">
+                                            <Globe className="w-5 h-5" />
+                                            <h4 className="font-bold text-lg">Analiză Bing Webmaster</h4>
+                                        </div>
+                                        <div className="prose prose-invert max-w-none text-foreground-muted text-sm leading-relaxed">
+                                            <ReactMarkdown>{report.aiReport.bing_section}</ReactMarkdown>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Main Chart */}
+                            <div className="p-6 rounded-xl bg-surface border border-border h-[400px]">
+                                <h3 className="text-lg font-medium mb-6">Evoluție Zilnică Click-uri</h3>
+                                <ResponsiveContainer width="100%" height="90%">
+                                    <AreaChart data={report.daily} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id="colorGsc" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#4285F4" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#4285F4" stopOpacity={0} />
+                                            </linearGradient>
+                                            <linearGradient id="colorBing" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#00897B" stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor="#00897B" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <XAxis dataKey="date" stroke="#52525b" tickFormatter={(str) => str.slice(8)} />
+                                        <YAxis stroke="#52525b" />
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                                        <Tooltip
+                                            contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
+                                            itemStyle={{ color: '#e4e4e7' }}
+                                        />
+                                        <Legend />
+                                        <Area type="monotone" dataKey="gsc.clicks" name="Google" stroke="#4285F4" fillOpacity={1} fill="url(#colorGsc)" />
+                                        <Area type="monotone" dataKey="bing.clicks" name="Bing" stroke="#00897B" fillOpacity={1} fill="url(#colorBing)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Sidebar Analysis */}
+                        <div className="space-y-8">
+                            {/* Final Conclusion Card */}
+                            {report.aiReport?.final_summary && (
+                                <div className="p-6 rounded-xl bg-primary border border-primary/20 text-white shadow-xl shadow-primary/10">
+                                    <h4 className="font-bold mb-3 flex items-center gap-2">
+                                        <ShieldCheck className="w-5 h-5" />
+                                        Concluzie Executivă
+                                    </h4>
+                                    <p className="text-sm leading-relaxed opacity-90 italic">
+                                        "{report.aiReport.final_summary}"
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Trend Card */}
+                            {report.aiReport?.trend_summary && (
+                                <div className="p-6 rounded-xl bg-surface border border-border">
+                                    <h4 className="font-bold mb-3 text-foreground-muted uppercase text-xs tracking-widest">Trend pe 16 Luni</h4>
+                                    <p className="text-sm text-foreground leading-relaxed">
+                                        {report.aiReport.trend_summary}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Summary Mini Cards */}
+                            <div className="grid grid-cols-1 gap-4">
+                                <div className="p-4 rounded-xl bg-surface/50 border border-border">
+                                    <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-tighter">Total Clicks</p>
+                                    <p className="text-2xl font-bold">{(report.summary.gscClicks + report.summary.bingClicks).toLocaleString()}</p>
+                                </div>
+                                <div className="p-4 rounded-xl bg-surface/50 border border-border">
+                                    <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-tighter">Total Impressions</p>
+                                    <p className="text-2xl font-bold">{(report.summary.gscImpressions + report.summary.bingImpressions).toLocaleString()}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

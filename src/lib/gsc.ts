@@ -5,7 +5,8 @@ export async function getGSCPerformance(
     accessToken: string,
     siteUrl: string,
     startDate: string,
-    endDate: string
+    endDate: string,
+    dimensions: string[] = ["date"]
 ) {
     const auth = new google.auth.OAuth2();
     auth.setCredentials({ access_token: accessToken });
@@ -17,8 +18,8 @@ export async function getGSCPerformance(
             requestBody: {
                 startDate,
                 endDate,
-                dimensions: ["date"],
-                rowLimit: 31,
+                dimensions: dimensions,
+                rowLimit: 5000,
             },
         });
 
