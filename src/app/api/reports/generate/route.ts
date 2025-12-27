@@ -126,16 +126,29 @@ export async function POST(request: Request) {
 
         // Bing Data Processing with Robust Date Parsing
         // ------------------------------------------------------------------
+        // Parse Bing's ASP.NET AJAX Date format or ISO format
+        const parseBingDate = (dString: string): Date | null => {
+            if (!dString) return null;
+            // Handle /Date(1724742000000-0700)/
+            const match = /\/Date\((\d+)(?:[+-]\d+)?\)\//.exec(dString);
+            if (match) {
+                return new Date(parseInt(match[1], 10));
+            }
+            const d = new Date(dString);
+            return isNaN(d.getTime()) ? null : d;
+        };
+
         const matchesMonth = (dString: string, tYear: string, tMonth: string) => {
             try {
-                if (!dString) return false;
-                let d = new Date(dString);
-                if (isNaN(d.getTime())) return false;
+                const d = parseBingDate(dString);
+                if (!d) return false;
 
                 const y = d.getUTCFullYear();
                 const m = d.getUTCMonth() + 1;
+                // Check local too just in case of timezone edge cases on boundary
                 const yL = d.getFullYear();
                 const mL = d.getMonth() + 1;
+
                 return (y === parseInt(tYear) && m === parseInt(tMonth)) || (yL === parseInt(tYear) && mL === parseInt(tMonth));
             } catch { return false; }
         };
@@ -143,12 +156,15 @@ export async function POST(request: Request) {
         // 1. Current Month Data for Bing
         const bingDailyData = bingRaw
             .filter((d: any) => matchesMonth(d.Date, year, month))
-            .map((d: any) => ({
-                date: d.Date.split('T')[0],
-                clicks: d.Clicks || 0,
-                impressions: d.Impressions || 0,
-                avgPos: d.AveragePosition || 0
-            }));
+            .map((d: any) => {
+                const dateObj = parseBingDate(d.Date);
+                return {
+                    date: dateObj ? dateObj.toISOString().split('T')[0] : `${year}-${month.padStart(2, '0')}-01`,
+                    clicks: d.Clicks || 0,
+                    impressions: d.Impressions || 0,
+                    avgPos: d.AveragePosition || 0
+                };
+            });
 
         const bingCurrent = bingDailyData.length > 0
             ? bingDailyData.reduce((acc: any, curr: any) => ({
