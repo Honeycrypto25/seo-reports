@@ -100,12 +100,16 @@ export default function ReportsPage() {
         if (!reportRef.current) return;
         setExporting(true);
 
+        // Allow some time for charts to finish animations
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         try {
             const canvas = await html2canvas(reportRef.current, {
                 scale: 2,
                 useCORS: true,
-                backgroundColor: "#09090b", // Match site's background
+                backgroundColor: "#09090b",
                 logging: false,
+                windowWidth: 1200, // Force a wider capture for better layout
             });
 
             const imgData = canvas.toDataURL("image/png");
@@ -301,39 +305,39 @@ export default function ReportsPage() {
 
                             {/* Sidebar Analysis */}
                             <div className="space-y-8">
-                                {/* Final Conclusion Card */}
-                                {report.aiReport?.final_summary && (
+                                {/* Executive Conclusion Card */}
+                                {report.aiReport?.executive_conclusion && (
                                     <div className="p-6 rounded-xl bg-primary border border-primary/20 text-white shadow-xl shadow-primary/10">
                                         <h4 className="font-bold mb-3 flex items-center gap-2">
                                             <ShieldCheck className="w-5 h-5" />
                                             Concluzie Executivă
                                         </h4>
                                         <p className="text-sm leading-relaxed opacity-90 italic">
-                                            "{report.aiReport.final_summary}"
+                                            "{report.aiReport.executive_conclusion}"
                                         </p>
                                     </div>
                                 )}
 
                                 {/* Trend Card */}
-                                {report.aiReport?.trend_summary && (
+                                {report.aiReport?.trend_16_months && (
                                     <div className="p-6 rounded-xl bg-surface border border-border">
                                         <h4 className="font-bold mb-3 text-foreground-muted uppercase text-xs tracking-widest">Trend pe 16 Luni</h4>
                                         <p className="text-sm text-foreground leading-relaxed">
-                                            {report.aiReport.trend_summary}
+                                            {report.aiReport.trend_16_months}
                                         </p>
                                     </div>
                                 )}
+                            </div>
 
-                                {/* Summary Mini Cards */}
-                                <div className="grid grid-cols-1 gap-4">
-                                    <div className="p-4 rounded-xl bg-surface/50 border border-border">
-                                        <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-tighter">Total Clicks</p>
-                                        <p className="text-2xl font-bold">{(report.summary.gscClicks + report.summary.bingClicks).toLocaleString()}</p>
-                                    </div>
-                                    <div className="p-4 rounded-xl bg-surface/50 border border-border">
-                                        <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-tighter">Total Impressions</p>
-                                        <p className="text-2xl font-bold">{(report.summary.gscImpressions + report.summary.bingImpressions).toLocaleString()}</p>
-                                    </div>
+                            {/* Summary Mini Cards */}
+                            <div className="grid grid-cols-1 gap-4">
+                                <div className="p-4 rounded-xl bg-surface/50 border border-border">
+                                    <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-tighter">Total Clicks</p>
+                                    <p className="text-2xl font-bold">{(report.summary.gscClicks + report.summary.bingClicks).toLocaleString()}</p>
+                                </div>
+                                <div className="p-4 rounded-xl bg-surface/50 border border-border">
+                                    <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-tighter">Total Impressions</p>
+                                    <p className="text-2xl font-bold">{(report.summary.gscImpressions + report.summary.bingImpressions).toLocaleString()}</p>
                                 </div>
                             </div>
                         </div>

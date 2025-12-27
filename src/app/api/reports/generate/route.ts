@@ -6,6 +6,7 @@ import { getBingPerformance, getBingSites } from "@/lib/bing";
 import { normalizeDomain } from "@/lib/utils";
 import { google } from "googleapis";
 import { subMonths, startOfMonth, endOfMonth, format, subYears } from "date-fns";
+import prisma from "@/lib/db";
 
 export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
@@ -163,8 +164,8 @@ export async function POST(request: Request) {
 
         const aiData = await aiRes.json();
 
-        // 6. Return combined report
-        return NextResponse.json({
+        // 6. Save to Database (Neon via Prisma)
+        const reportData = {
             period: { year, month },
             site: normalizedId,
             summary: {
@@ -176,9 +177,45 @@ export async function POST(request: Request) {
             daily: gscCurrent.map((r: any) => ({
                 date: r.keys[0],
                 gsc: { clicks: r.clicks, impressions: r.impressions, ctr: r.ctr, position: r.position },
-                bing: { clicks: 0, impressions: 0, ctr: 0 } // Daily bing would require another endpoint
+                bing: { clicks: 0, impressions: 0, ctr: 0 }
             })),
             aiReport: aiData.report,
+            summaryCards: aiData.summary_cards
+        };
+
+        try {
+            await prisma.seoReport.upsert({
+                where: {
+                    siteId_period: {
+                        siteId: normalizedId,
+                        period: `${year}-${month.toString().padStart(2, '0')}`
+                    }
+                },
+                update: {
+                    summary: reportData.summary as any,
+                    aiReport: reportData.aiReport as any,
+                    summaryCards: reportData.summaryCards as any,
+                    dailyData: reportData.daily as any,
+                },
+                create: {
+                    siteId: normalizedId,
+                    period: `${year}-${month.toString().padStart(2, '0')}`,
+                    summary: reportData.summary as any,
+                    aiReport: reportData.aiReport as any,
+                    summaryCards: reportData.summaryCards as any,
+                    dailyData: reportData.daily as any,
+                }
+            });
+        } catch (dbError) {
+            console.error("Failed to save report to database:", dbError);
+            // We still return the report even if save fails, but log the error
+        }
+
+        // 7. Return combined report
+        return NextResponse.json({
+            ...reportData,
+            aiReport: aiData.report,
+            // Keep keys stable for UI components if needed, or map them
             summaryCards: aiData.summary_cards
         });
 

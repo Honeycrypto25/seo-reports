@@ -1,0 +1,23 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SeoReport {
+  id              String   @id @default(cuid())
+  siteId          String   // normalized domain
+  period          String   // YYYY-MM
+  summary         Json     // { gscClicks, gscImpressions, bingClicks, bingImpressions }
+  aiReport        Json     // The full AI report object { highlights, google_section, bing_section, trend_summary, final_summary }
+  summaryCards    Json?    // Summary cards data
+  dailyData       Json     // Daily clicks/impressions series
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([siteId, period])
+  @@index([siteId])
+}
