@@ -8,28 +8,21 @@ export function cn(...inputs: ClassValue[]) {
 export function normalizeDomain(url: string): string {
     if (!url) return "";
 
-    // 1. Remove sc-domain: prefix used by Google Search Console Domain Properties
-    let clean = url.replace(/^sc-domain:/i, '');
+    // 1. Ensure we have a string
+    let clean = String(url).trim();
 
-    // 2. Remove protocols and www
+    // 2. Remove Google's Domain Property prefix
+    clean = clean.replace(/^sc-domain:/i, '');
+
+    // 3. Strip protocols
     clean = clean.replace(/^https?:\/\//i, '');
+
+    // 4. Strip www.
     clean = clean.replace(/^www\./i, '');
 
-    // 3. Remove trailing slash
+    // 5. Strip trailing slash
     clean = clean.replace(/\/$/, '');
 
-    // 4. If there's still a path (e.g. domain.com/blog), handled by URL parser if needed
-    // but for most SEO cases we just want the base site identifier.
-    // Let's keep the path if it exists but normalize it.
-    try {
-        const urlWithProtocol = `https://${clean}`;
-        const parsed = new URL(urlWithProtocol);
-        let hostname = parsed.hostname.replace(/^www\./i, '');
-        let pathname = parsed.pathname === '/' ? '' : parsed.pathname;
-        if (pathname.endsWith('/')) pathname = pathname.slice(0, -1);
-
-        return `${hostname}${pathname}`.toLowerCase();
-    } catch (e) {
-        return clean.toLowerCase();
-    }
+    // Normalize to lowercase for matching
+    return clean.toLowerCase();
 }

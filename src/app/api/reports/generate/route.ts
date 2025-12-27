@@ -70,13 +70,13 @@ export async function POST(request: Request) {
             gscCurrent,
             gscPrevious,
             gscYoy,
-            gscSixteen,
+            gscTrendRaw, // Fetch daily for trend and aggregate manually
             bingRaw
         ] = await Promise.all([
             getGSCPerformance(session.accessToken as string, gscUrl, curStart, curEnd),
             getGSCPerformance(session.accessToken as string, gscUrl, prevStart, prevEnd),
             getGSCPerformance(session.accessToken as string, gscUrl, yoyStart, yoyEnd),
-            getGSCPerformance(session.accessToken as string, gscUrl, sixteenMonthsStart, curEnd, ["month"]),
+            getGSCPerformance(session.accessToken as string, gscUrl, sixteenMonthsStart, curEnd, ["date"]),
             fetchBing(bingUrl, curStart, curEnd)
         ]);
 
@@ -90,17 +90,32 @@ export async function POST(request: Request) {
             return { clicks, impressions, ctr, position };
         };
 
+        // Aggregate daily GSC data into months for the 16-month payload
+        const monthlyGroups: Record<string, any> = {};
+        gscTrendRaw.forEach((row: any) => {
+            const m = row.keys[0].substring(0, 7); // YYYY-MM
+            if (!monthlyGroups[m]) {
+                monthlyGroups[m] = { clicks: 0, impressions: 0, sumPos: 0, count: 0 };
+            }
+            monthlyGroups[m].clicks += row.clicks || 0;
+            monthlyGroups[m].impressions += row.impressions || 0;
+            monthlyGroups[m].sumPos += row.position || 0;
+            monthlyGroups[m].count += 1;
+        });
+
+        const last16Months = Object.entries(monthlyGroups).map(([month, data]: [string, any]) => ({
+            month,
+            clicks: data.clicks,
+            impressions: data.impressions,
+            ctr: data.impressions > 0 ? (data.clicks / data.impressions) * 100 : 0,
+            position: data.count > 0 ? data.sumPos / data.count : null
+        })).sort((a, b) => a.month.localeCompare(b.month));
+
         const gscPayload = {
             current: summarizeGSC(gscCurrent),
             previous: gscPrevious.length ? summarizeGSC(gscPrevious) : null,
             yoy: gscYoy.length ? summarizeGSC(gscYoy) : null,
-            last16Months: gscSixteen.map((r: any) => ({
-                month: r.keys[0].substring(0, 7),
-                clicks: r.clicks,
-                impressions: r.impressions,
-                ctr: r.ctr * 100,
-                position: r.position
-            }))
+            last16Months
         };
 
         // Bing Data Processing (Note: Bing API GetSiteStats is tricky, usually returns 6 months)

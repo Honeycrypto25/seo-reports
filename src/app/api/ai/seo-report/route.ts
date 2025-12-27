@@ -220,7 +220,7 @@ Formatare output:
         // Note: The user provided client.responses.create which might be for a different SDK version.
         // I will use chat.completions.create which is the standard for gpt models in the 'openai' package.
         const response = await client.chat.completions.create({
-            model: "gpt-5-mini",
+            model: "gpt-4o-mini",
             messages: [
                 { role: "system", content: instructions },
                 {
