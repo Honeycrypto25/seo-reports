@@ -271,18 +271,16 @@ export default function ReportsPage() {
                     <div ref={reportRef} className="space-y-8 p-1"> {/* p-1 to prevent shadow clipping in PDF */}
                         {/* AI Highlights Header */}
                         {report.aiReport && report.aiReport.highlights && (
-                            <div className="p-8 rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-background to-accent/5 relative overflow-hidden shadow-2xl">
-                                <div className="absolute top-0 right-0 p-6 opacity-20 pointer-events-none">
-                                    <Sparkles className="h-32 w-32 text-primary" />
-                                </div>
+                            <div className="p-6 rounded-xl bg-gradient-to-br from-primary/10 via-surface to-surface border border-primary/20 shadow-lg relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors duration-500" />
 
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="p-2 rounded-xl bg-primary/20 shadow-inner">
-                                        <Sparkles className="h-6 w-6 text-primary" />
+                                <div className="flex items-center gap-3 mb-6 relative">
+                                    <div className="p-2 rounded-lg bg-primary/20 text-primary">
+                                        <Sparkles className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black text-foreground tracking-tight">Puncte Forte & Analiză AI</h3>
-                                        <p className="text-xs text-primary font-bold uppercase tracking-widest">Premium Intelligence Engine</p>
+                                        <h3 className="text-xl font-bold tracking-tight">Insights & Performanță</h3>
+                                        <p className="text-xs font-dm text-primary uppercase tracking-widest font-semibold opacity-80">EXECUTIVE SUMMARY</p>
                                     </div>
                                 </div>
 
