@@ -40,22 +40,39 @@ export async function getBingPerformance(
     siteUrl: string,
     retry = true
 ): Promise<any> {
-    const endpoint = "https://ssl.bing.com/webmaster/api.svc/json/GetSiteStats";
+    const endpoint = "https://ssl.bing.com/webmaster/api.svc/json/GetRankAndTrafficStats";
 
     // Helper function to fetch from a specific URL variant
     const fetchVariant = async (urlVariant: string) => {
         try {
-            const res = await fetch(`${endpoint}?siteUrl=${encodeURIComponent(urlVariant)}&apikey=${apiKey}`, {
+            // 1. Try POST with JSON body (Preferred for GetRankAndTrafficStats)
+            const resPost = await fetch(`${endpoint}?apikey=${apiKey}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ siteUrl: urlVariant })
+            });
+
+            if (resPost.ok) {
+                const json = await resPost.json();
+                const data = json.d || json || [];
+                return Array.isArray(data) ? data : [];
+            }
+
+            // 2. Fallback to GET with query param
+            const resGet = await fetch(`${endpoint}?siteUrl=${encodeURIComponent(urlVariant)}&apikey=${apiKey}`, {
                 method: "GET",
                 headers: { "Content-Type": "application/json" },
             });
-            if (!res.ok) return null; // 404 or other error
-            const json = await res.json();
-            const data = json.d || json || [];
-            // Return data only if it's an array. If empty array, we treat it as "no data found yet" but valid response.
-            // However, for retry logic, we might want to keep trying if empty, assuming active sites usually have data.
-            return Array.isArray(data) ? data : [];
+
+            if (resGet.ok) {
+                const json = await resGet.json();
+                const data = json.d || json || [];
+                return Array.isArray(data) ? data : [];
+            }
+
+            return null;
         } catch (e) {
+            console.error(`Bing API error for ${urlVariant}:`, e);
             return null;
         }
     };
