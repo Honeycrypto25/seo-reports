@@ -236,9 +236,11 @@ export async function POST(request: Request) {
                     dailyData: reportData.daily as any,
                 }
             });
-        } catch (dbError) {
-            console.error("Failed to save report to database:", dbError);
-            // We still return the report even if save fails, but log the error
+        } catch (dbError: any) {
+            console.error("CRITICAL DB ERROR: Failed to save report to database:", dbError);
+            if (dbError.code) console.error("Prisma Error Code:", dbError.code);
+            if (dbError.meta) console.error("Prisma Error Meta:", dbError.meta);
+            // We still return the report even if save fails, but log the error prominently
         }
 
         // 7. Return combined report

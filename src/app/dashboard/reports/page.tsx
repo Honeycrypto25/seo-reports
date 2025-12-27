@@ -139,10 +139,10 @@ export default function ReportsPage() {
         try {
             console.log("Starting PDF generation...");
             const canvas = await html2canvas(reportRef.current, {
-                scale: 2,
+                scale: 1, // Reduced scale to prevent memory crashes
                 useCORS: true,
                 backgroundColor: "#09090b",
-                logging: false,
+                logging: true,
             });
 
             console.log("Canvas generated successfully");
