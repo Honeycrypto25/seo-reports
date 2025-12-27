@@ -136,10 +136,21 @@ body {
     display: none !important;
   }
 
+  /* Prevent page breaks inside cards */
+  .bg-surface,
+  .p-6,
+  .rounded-xl,
+  section,
+  article {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
   /* Ensure graphs are visible */
   .recharts-responsive-container {
     width: 100% !important;
     height: 300px !important;
+    break-inside: avoid !important;
   }
 
   /* Hide specific UI elements inside report helper if any (like close button) */

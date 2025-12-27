@@ -403,6 +403,7 @@ export default function ReportsPage() {
                         </div>
 
                         {/* Summary Mini Cards */}
+                        {/* Summary Mini Cards */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="p-4 rounded-xl bg-surface/50 border border-border">
                                 <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-tighter">Total Clicks</p>
@@ -411,6 +412,27 @@ export default function ReportsPage() {
                             <div className="p-4 rounded-xl bg-surface/50 border border-border">
                                 <p className="text-[10px] font-bold text-foreground-muted uppercase tracking-tighter">Total Impressions</p>
                                 <p className="text-2xl font-bold">{(report.summary.gscImpressions + report.summary.bingImpressions).toLocaleString()}</p>
+                            </div>
+                        </div>
+
+                        {/* Debug Info Footer */}
+                        <div className="mt-8 pt-8 border-t border-border">
+                            <div className="flex flex-col gap-2 text-xs text-foreground-muted">
+                                <div>
+                                    SEO Report Hub &bull; Generat la: {new Date().toLocaleString('ro-RO')} (Versiune Finală)
+                                </div>
+                                {report._debug && (
+                                    <details className="text-left cursor-pointer border border-border p-2 rounded bg-black/20">
+                                        <summary className="hover:text-foreground transition-colors font-mono text-[10px]">🔍 Show Debug Info (Bing Diagnostics)</summary>
+                                        <div className="mt-2 p-2 bg-black rounded border border-border overflow-auto text-[10px] font-mono whitespace-pre-wrap">
+                                            <div><strong>Bing URL:</strong> {report._debug.bingUrl}</div>
+                                            <div><strong>Raw Count:</strong> {report._debug.bingRawLength}</div>
+                                            <div><strong>Filtered Count:</strong> {report._debug.filteredCount}</div>
+                                            <div className="mt-1"><strong>Sample Raw Data:</strong></div>
+                                            <pre>{JSON.stringify(report._debug.bingSample, null, 2)}</pre>
+                                        </div>
+                                    </details>
+                                )}
                             </div>
                         </div>
                     </div>
