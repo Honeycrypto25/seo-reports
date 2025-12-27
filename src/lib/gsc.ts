@@ -29,3 +29,17 @@ export async function getGSCPerformance(
         throw error;
     }
 }
+
+export async function getGSCSites(accessToken: string) {
+    const auth = new google.auth.OAuth2();
+    auth.setCredentials({ access_token: accessToken });
+    const searchConsole = google.webmasters({ version: "v3", auth });
+
+    try {
+        const response = await searchConsole.sites.list();
+        return response.data.siteEntry || [];
+    } catch (error) {
+        console.error("Error fetching GSC sites:", error);
+        throw error;
+    }
+}

@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { google } from "googleapis";
+import { getGSCSites } from "@/lib/gsc";
 import { NextResponse } from "next/server";
 
 export async function GET() {
@@ -11,15 +11,7 @@ export async function GET() {
     }
 
     try {
-        const auth = new google.auth.OAuth2();
-        auth.setCredentials({ access_token: session.accessToken as string });
-
-        const searchConsole = google.webmasters({ version: "v3", auth });
-
-        // Fetch list of sites
-        const response = await searchConsole.sites.list();
-        const sites = response.data.siteEntry || [];
-
+        const sites = await getGSCSites(session.accessToken as string);
         return NextResponse.json({ sites });
     } catch (error) {
         console.error("GSC API Error:", error);
