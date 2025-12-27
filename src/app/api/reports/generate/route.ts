@@ -62,9 +62,14 @@ export async function POST(request: Request) {
         const sixteenMonthsStart = format(startOfMonth(subMonths(targetDate, 15)), "yyyy-MM-dd");
 
         // 3. Fetch Data in Parallel
-        const fetchBing = (url: string, start: string, end: string) => {
-            if (!bingApiKey || !url) return Promise.resolve([]);
-            return getBingPerformance(bingApiKey, url);
+        const fetchBingStats = async (url: string) => {
+            if (!bingApiKey || !url) return [];
+            try {
+                return await getBingPerformance(bingApiKey, url);
+            } catch (err) {
+                console.error("Bing Stats Fetch Error:", err);
+                return [];
+            }
         };
 
         const [
@@ -78,7 +83,7 @@ export async function POST(request: Request) {
             getGSCPerformance(session.accessToken as string, gscUrl, prevStart, prevEnd),
             getGSCPerformance(session.accessToken as string, gscUrl, yoyStart, yoyEnd),
             getGSCPerformance(session.accessToken as string, gscUrl, sixteenMonthsStart, curEnd, ["date"]),
-            fetchBing(bingUrl, curStart, curEnd)
+            fetchBingStats(bingUrl)
         ]);
 
         // 4. Transform Data for the new AI endpoint
@@ -120,31 +125,55 @@ export async function POST(request: Request) {
         };
 
         // Bing Data Processing (Note: Bing API GetSiteStats is tricky, usually returns 6 months)
-        const processedBing = bingRaw.map((row: any) => {
+        const processedBing = (bingRaw || []).map((row: any) => {
             let dateStr = row.Date;
             if (typeof dateStr === 'string' && dateStr.includes("/Date(")) {
                 const match = dateStr.match(/\d+/);
                 const ts = match ? parseInt(match[0]) : 0;
                 dateStr = ts ? new Date(ts).toISOString().split('T')[0] : "";
             } else if (dateStr) {
-                dateStr = new Date(dateStr).toISOString().split('T')[0];
+                try {
+                    dateStr = new Date(dateStr).toISOString().split('T')[0];
+                } catch {
+                    dateStr = "";
+                }
             }
             return { ...row, date: dateStr };
         });
 
         const filterBing = (start: string, end: string) => {
             const filtered = processedBing.filter((r: any) => r.date >= start && r.date <= end);
+            if (filtered.length === 0) return null;
             const clicks = filtered.reduce((acc: number, r: any) => acc + (r.Clicks || 0), 0);
             const impressions = filtered.reduce((acc: number, r: any) => acc + (r.Impressions || 0), 0);
             const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
             return { clicks, impressions, ctr, position: null };
         };
 
-        const bingPayload = bingUrl ? {
-            current: filterBing(curStart, curEnd),
-            previous: filterBing(prevStart, prevEnd),
-            yoy: filterBing(yoyStart, yoyEnd),
-            last16Months: null // Bing doesn't easily return 16 months in one go without pagination
+        const bingCurrent = filterBing(curStart, curEnd);
+        const bingPrevious = filterBing(prevStart, prevEnd);
+        const bingYoy = filterBing(yoyStart, yoyEnd);
+
+        const calculateDeltas = (curr: any, comp: any) => {
+            if (!curr || !comp) return null;
+            return {
+                clicks_change_pct: comp.clicks > 0 ? parseFloat(((curr.clicks - comp.clicks) / comp.clicks * 100).toFixed(2)) : 0,
+                impressions_change_pct: comp.impressions > 0 ? parseFloat(((curr.impressions - comp.impressions) / comp.impressions * 100).toFixed(2)) : 0,
+                ctr_change_pp: parseFloat((curr.ctr - comp.ctr).toFixed(2)),
+                position_improved: curr.position !== null && comp.position !== null ? curr.position < comp.position : null,
+            };
+        };
+
+        const gscAI = {
+            current: gscPayload.current,
+            mom: calculateDeltas(gscPayload.current, gscPayload.previous),
+            yoy: calculateDeltas(gscPayload.current, gscPayload.yoy)
+        };
+
+        const bingAI = bingCurrent ? {
+            current: bingCurrent,
+            mom: calculateDeltas(bingCurrent, bingPrevious),
+            yoy: calculateDeltas(bingCurrent, bingYoy)
         } : null;
 
         // 5. Call the new AI Specialized Endpoint
@@ -156,9 +185,10 @@ export async function POST(request: Request) {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 site: normalizedId,
-                month: `${year}-${month.toString().padStart(2, '0')}`,
-                google: gscPayload,
-                bing: bingPayload
+                period: `${year}-${month.toString().padStart(2, '0')}`,
+                google: gscAI,
+                bing: bingAI,
+                trend_16_months: last16Months.length > 3 ? (last16Months[last16Months.length - 1].clicks > last16Months[0].clicks ? "upward" : "mixed") : "neutral"
             })
         });
 
@@ -171,8 +201,8 @@ export async function POST(request: Request) {
             summary: {
                 gscClicks: gscPayload.current.clicks,
                 gscImpressions: gscPayload.current.impressions,
-                bingClicks: bingPayload?.current.clicks || 0,
-                bingImpressions: bingPayload?.current.impressions || 0,
+                bingClicks: bingCurrent?.clicks || 0,
+                bingImpressions: bingCurrent?.impressions || 0,
             },
             daily: gscCurrent.map((r: any) => ({
                 date: r.keys[0],
@@ -180,7 +210,7 @@ export async function POST(request: Request) {
                 bing: { clicks: 0, impressions: 0, ctr: 0 }
             })),
             aiReport: aiData.report,
-            summaryCards: aiData.summary_cards
+            summaryCards: aiData.report.highlights // Using AI highlights for summary cards
         };
 
         try {
