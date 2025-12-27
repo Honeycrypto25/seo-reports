@@ -16,6 +16,16 @@ export const authOptions: NextAuthOptions = {
         }),
     ],
     callbacks: {
+        async signIn({ user }) {
+            const allowedEmails = process.env.ALLOWED_EMAILS?.split(",") || [];
+            // If no allowed emails are configured, we allow everyone (default behavior for testing locally)
+            // BUT for your security, we will make it stricter:
+            if (allowedEmails.length > 0 && user.email) {
+                const isAllowed = allowedEmails.some(email => email.trim().toLowerCase() === user.email?.toLowerCase());
+                return isAllowed;
+            }
+            return true; // Change this to false if you want to block everyone by default when no list is set
+        },
         async jwt({ token, account }) {
             // Persist the OAuth access_token to the token right after signin
             if (account) {
