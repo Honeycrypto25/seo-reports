@@ -38,7 +38,8 @@ export async function getBingSites(apiKey: string): Promise<BingSite[]> {
 export async function getBingPerformance(
     apiKey: string,
     siteUrl: string,
-) {
+    retry = true
+): Promise<any> {
     // Bing GetSiteStats returns the last 6 months of data by default.
     // We will fetch it all and filter in the application logic.
     const endpoint = "https://ssl.bing.com/webmaster/api.svc/json/GetSiteStats";
@@ -51,6 +52,13 @@ export async function getBingPerformance(
             },
         });
 
+        if (response.status === 404 && retry) {
+            // Bing is picky about trailing slashes. If it failed, try the opposite.
+            const altUrl = siteUrl.endsWith('/') ? siteUrl.slice(0, -1) : `${siteUrl}/`;
+            console.log(`Bing 404 for ${siteUrl}, retrying with ${altUrl}`);
+            return getBingPerformance(apiKey, altUrl, false);
+        }
+
         if (!response.ok) {
             throw new Error(`Bing API Error: ${response.statusText}`);
         }
@@ -59,7 +67,7 @@ export async function getBingPerformance(
         // Wrapper 'd'
         return data.d || data || [];
     } catch (error) {
-        console.error("Failed to fetch Bing stats", error);
+        console.error(`Failed to fetch Bing stats for ${siteUrl}:`, error);
         return [];
     }
 }
