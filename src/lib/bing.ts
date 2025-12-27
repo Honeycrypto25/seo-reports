@@ -40,55 +40,58 @@ export async function getBingPerformance(
     siteUrl: string,
     retry = true
 ): Promise<any> {
-    // Bing GetSiteStats returns the last 6 months of data by default.
-    // We will fetch it all and filter in the application logic.
     const endpoint = "https://ssl.bing.com/webmaster/api.svc/json/GetSiteStats";
 
-    try {
-        const response = await fetch(`${endpoint}?siteUrl=${encodeURIComponent(siteUrl)}&apikey=${apiKey}`, {
-            method: "GET",
-            headers: {
-                "Content-Type": "application/json",
-            },
-        });
-
-        if (response.status === 404 && retry) {
-            // Bing is picky about trailing slashes AND www.. 
-            // 1. Try toggling slash
-            let altUrl = siteUrl.endsWith('/') ? siteUrl.slice(0, -1) : `${siteUrl}/`;
-            console.log(`Bing 404 for ${siteUrl}, retrying with slash toggle: ${altUrl}`);
-
-            // recurse with retry=false (so we don't loop forever, but wait.. we want to try www too)
-            // Let's do a sequence manually here to avoid recursion hell with one flag.
-
-            let res2 = await fetch(`${endpoint}?siteUrl=${encodeURIComponent(altUrl)}&apikey=${apiKey}`, { method: "GET" });
-            if (res2.ok) return (await res2.json()).d;
-
-            // 2. Try toggling www
-            const hasWww = siteUrl.includes("www.");
-            const wwwUrl = hasWww ? siteUrl.replace("www.", "") : siteUrl.replace("://", "://www.");
-            console.log(`Bing 404, retrying with www toggle: ${wwwUrl}`);
-
-            let res3 = await fetch(`${endpoint}?siteUrl=${encodeURIComponent(wwwUrl)}&apikey=${apiKey}`, { method: "GET" });
-            if (res3.ok) return (await res3.json()).d;
-
-            // 3. Try www + slash toggle
-            const wwwSlashUrl = wwwUrl.endsWith('/') ? wwwUrl.slice(0, -1) : `${wwwUrl}/`;
-            let res4 = await fetch(`${endpoint}?siteUrl=${encodeURIComponent(wwwSlashUrl)}&apikey=${apiKey}`, { method: "GET" });
-            if (res4.ok) return (await res4.json()).d;
-
-            return []; // Give up
+    // Helper function to fetch from a specific URL variant
+    const fetchVariant = async (urlVariant: string) => {
+        try {
+            const res = await fetch(`${endpoint}?siteUrl=${encodeURIComponent(urlVariant)}&apikey=${apiKey}`, {
+                method: "GET",
+                headers: { "Content-Type": "application/json" },
+            });
+            if (!res.ok) return null; // 404 or other error
+            const json = await res.json();
+            const data = json.d || json || [];
+            // Return data only if it's an array. If empty array, we treat it as "no data found yet" but valid response.
+            // However, for retry logic, we might want to keep trying if empty, assuming active sites usually have data.
+            return Array.isArray(data) ? data : [];
+        } catch (e) {
+            return null;
         }
+    };
 
-        if (!response.ok) {
-            throw new Error(`Bing API Error: ${response.statusText}`);
+    // 1. Try exact match first
+    let data = await fetchVariant(siteUrl);
+
+    // If data is found and not empty, return it immediately
+    if (data && data.length > 0) return data;
+
+    // If we are allowed to retry and data is null (error) or empty (maybe wrong url variant?)
+    if (retry && (!data || data.length === 0)) {
+        console.log(`[Bing] No data for ${siteUrl}, trying variations...`);
+
+        // Generate variations
+        const clean = siteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '').replace(/^www\./, '');
+        const protocols = ['https://', 'http://'];
+        const prefixes = ['', 'www.'];
+        const suffixes = ['', '/'];
+
+        for (const proto of protocols) {
+            for (const pref of prefixes) {
+                for (const suf of suffixes) {
+                    const variant = `${proto}${pref}${clean}${suf}`;
+                    if (variant === siteUrl) continue; // skip original
+
+                    const variantData = await fetchVariant(variant);
+                    if (variantData && variantData.length > 0) {
+                        console.log(`[Bing] Found data on variation: ${variant}`);
+                        return variantData;
+                    }
+                }
+            }
         }
-
-        const data = await response.json();
-        // Wrapper 'd'
-        return data.d || data || [];
-    } catch (error) {
-        console.error(`Failed to fetch Bing stats for ${siteUrl}:`, error);
-        return [];
     }
+
+    // Return whatever we got (empty array likely) if all retries failed
+    return data || [];
 }
