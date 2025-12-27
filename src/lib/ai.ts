@@ -26,7 +26,7 @@ export async function generateSEOInsight(data: {
 
     try {
         const { text } = await generateText({
-            model: openai('gpt-4o-mini'),
+            model: openai('gpt-5-mini'),
             system: 'You are a high-level SEO analyst providing executive summaries.',
             prompt: prompt,
         });
