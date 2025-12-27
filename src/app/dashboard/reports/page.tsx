@@ -357,7 +357,7 @@ export default function ReportsPage() {
                             {/* Text Analysis Column */}
                             <div className="space-y-6">
                                 {report.aiReport?.google_section && (
-                                    <div className="p-6 rounded-xl bg-surface border border-border h-full">
+                                    <div className="p-6 rounded-xl bg-surface border border-border">
                                         <div className="flex items-center gap-2 mb-4 text-blue-400">
                                             <Search className="w-5 h-5" />
                                             <h3 className="font-bold">Analiză Google</h3>
@@ -368,7 +368,7 @@ export default function ReportsPage() {
                                     </div>
                                 )}
                                 {report.aiReport?.bing_section && (
-                                    <div className="p-6 rounded-xl bg-surface border border-border h-full">
+                                    <div className="p-6 rounded-xl bg-surface border border-border">
                                         <div className="flex items-center gap-2 mb-4 text-emerald-400">
                                             <Globe className="w-5 h-5" />
                                             <h3 className="font-bold">Analiză Bing</h3>
