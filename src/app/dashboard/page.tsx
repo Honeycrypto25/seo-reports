@@ -45,12 +45,38 @@ export default function DashboardPage() {
 
             {/* Integration Status */}
             <div className="rounded-xl border border-border bg-surface p-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h3 className="text-lg font-medium text-foreground">Integrations</h3>
-                        <p className="text-sm text-foreground-muted">Manage your connected SEO tools.</p>
+                <div className="flex flex-col gap-4">
+                    {/* Google Search Console */}
+                    <div className="flex items-center justify-between p-4 rounded-lg bg-surface-highlight/30 border border-border/50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-[#4285F4]/10 flex items-center justify-center">
+                                <Search className="w-5 h-5 text-[#4285F4]" />
+                            </div>
+                            <div>
+                                <h4 className="font-medium text-foreground">Google Search Console</h4>
+                                <p className="text-xs text-foreground-muted">Import sites and performance data</p>
+                            </div>
+                        </div>
+                        <LoginButton />
                     </div>
-                    <LoginButton />
+
+                    {/* Bing Webmaster Tools */}
+                    <div className="flex items-center justify-between p-4 rounded-lg bg-surface-highlight/30 border border-border/50">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-[#00897B]/10 flex items-center justify-center">
+                                <Globe className="w-5 h-5 text-[#00897B]" />
+                            </div>
+                            <div>
+                                <h4 className="font-medium text-foreground">Bing Webmaster Tools</h4>
+                                <p className="text-xs text-foreground-muted">Connect via API Key in .env</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs text-success bg-success/10 px-2 py-1 rounded-full font-medium border border-success/20">
+                                Configured via ENV
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
