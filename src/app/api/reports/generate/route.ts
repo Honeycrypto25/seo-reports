@@ -5,6 +5,7 @@ import { getGSCPerformance } from "@/lib/gsc";
 import { getBingPerformance, getBingSites } from "@/lib/bing";
 import { normalizeDomain } from "@/lib/utils";
 import { google } from "googleapis";
+import { generateSEOInsight } from "@/lib/ai";
 
 export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
@@ -114,11 +115,19 @@ export async function POST(request: Request) {
             bingImpressions: acc.bingImpressions + day.bing.impressions,
         }), { gscClicks: 0, gscImpressions: 0, bingClicks: 0, bingImpressions: 0 });
 
+        // 5. Generate AI Insights
+        const aiInsight = await generateSEOInsight({
+            site: normalizedId,
+            period: `${year}-${month}`,
+            summary
+        });
+
         return NextResponse.json({
             period: { year, month },
             site: normalizedId,
             summary,
-            daily: dailyData
+            daily: dailyData,
+            aiInsight
         });
 
     } catch (error) {

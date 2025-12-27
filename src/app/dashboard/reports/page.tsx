@@ -7,6 +7,8 @@ import { Search, Globe, FileBarChart, Loader2, Calendar } from "lucide-react";
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
+import { Sparkles } from "lucide-react";
+import ReactMarkdown from 'react-markdown';
 
 interface ReadySite {
     id: string; // normalized
@@ -187,6 +189,27 @@ export default function ReportsPage() {
                             <p className="text-3xl font-bold text-foreground mt-2">{((report.summary.bingImpressions / 1000).toFixed(1))}k</p>
                         </div>
                     </div>
+
+                    {/* AI Insights Section */}
+                    {report.aiInsight && (
+                        <div className="p-6 rounded-xl border border-primary/20 bg-primary/5 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                                <Sparkles className="h-24 w-24 text-primary" />
+                            </div>
+
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="p-1.5 rounded-lg bg-primary/20">
+                                    <Sparkles className="h-5 w-5 text-primary" />
+                                </div>
+                                <h3 className="text-xl font-bold text-foreground">AI Intelligence Report</h3>
+                                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-primary text-white rounded">AI Engine</span>
+                            </div>
+
+                            <div className="prose prose-invert max-w-none text-foreground-muted leading-relaxed">
+                                <ReactMarkdown>{report.aiInsight}</ReactMarkdown>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Main Chart */}
                     <div className="p-6 rounded-xl bg-surface border border-border h-[400px]">
