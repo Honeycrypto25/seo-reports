@@ -74,31 +74,59 @@ body {
 }
 
 @media print {
-
-  /* Hide everything by default */
-  body * {
-    visibility: hidden;
+  @page {
+    margin: 0;
+    size: A4;
   }
 
-  /* Show only the report container */
-  #report-container,
-  #report-container * {
-    visibility: visible;
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background-color: #09090b !important;
+    /* Dark background */
+    color: #e4e4e7 !important;
+    /* Light text */
+    margin: 0;
+    padding: 20px;
   }
 
-  /* Position report at the top */
-  #report-container {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    background: white !important;
-    /* Force white background for print usually */
-    color: black !important;
+  /* Force background colors on cards */
+  .bg-surface,
+  .bg-surface\/50 {
+    background-color: #18181b !important;
+    /* Dark card bg */
+    border: 1px solid #27272a !important;
+    color: #e4e4e7 !important;
+    box-shadow: none !important;
   }
 
-  /* Adjust colors for print if needed (optional, dark mode print is heavy ink) */
-  /* For now we keep it as is or let user decide via browser print settings */
+  /* Force text colors */
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  span,
+  div {
+    color: inherit !important;
+  }
+
+  /* Helper to ensure charts and dark elements stay dark */
+  * {
+    border-color: #27272a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  /* Ensure graphs are visible */
+  .recharts-responsive-container {
+    width: 100% !important;
+    height: 300px !important;
+  }
 
   /* Hide specific UI elements inside report helper if any (like close button) */
   .no-print {
