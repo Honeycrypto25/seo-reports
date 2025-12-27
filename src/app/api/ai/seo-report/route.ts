@@ -34,6 +34,12 @@ INTERPRETARE:
   explică acest lucru ca o creștere a calității traficului.
 - Specifică clar contextul comparațiilor (MoM / YoY).
 
+REGULI BING (bing_status):
+- Dacă 'not_connected': Scrie explicit "Site-ul nu figurează ca fiind conectat la Bing Webmaster Tools în contul curent."
+- Dacă 'no_data_or_error': Scrie explicit "Nu există date de trafic suficiente pe Bing pentru această perioadă sau a apărut o eroare de conexiune."
+- Dacă 'active': Analizează datele normal.
+- NU lăsa secțiunea bing_section goală.
+
 OUTPUT OBLIGATORIU – JSON VALID:
 {
   "highlights": string[],

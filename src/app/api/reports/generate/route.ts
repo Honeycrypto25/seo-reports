@@ -164,6 +164,10 @@ export async function POST(request: Request) {
             };
         };
 
+        const bingStatus = !bingUrl ? 'not_connected'
+            : (!bingRaw || bingRaw.length === 0) ? 'no_data_or_error'
+                : 'active';
+
         const gscAI = {
             current: gscPayload.current,
             mom: calculateDeltas(gscPayload.current, gscPayload.previous),
@@ -188,6 +192,7 @@ export async function POST(request: Request) {
                 period: `${year}-${month.toString().padStart(2, '0')}`,
                 google: gscAI,
                 bing: bingAI,
+                bing_status: bingStatus, // Tell AI exactly what's up
                 trend_16_months: last16Months.length > 3 ? (last16Months[last16Months.length - 1].clicks > last16Months[0].clicks ? "upward" : "mixed") : "neutral"
             })
         });
