@@ -186,12 +186,14 @@ export default function ReportsPage() {
             </div>
 
             {/* History Section */}
-            {history.length > 0 && !report && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 no-print">
-                    <h3 className="text-lg font-medium flex items-center gap-2">
-                        <FileBarChart className="w-5 h-5 text-primary" />
-                        Saved Reports
-                    </h3>
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 no-print">
+                <h3 className="text-lg font-medium flex items-center gap-2">
+                    <FileBarChart className="w-5 h-5 text-primary" />
+                    Saved Reports
+                </h3>
+                {history.length === 0 ? (
+                    <p className="text-foreground-muted text-sm italic">Nu există rapoarte salvate încă.</p>
+                ) : (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {history.map((h: any) => (
                             <div
@@ -212,8 +214,8 @@ export default function ReportsPage() {
                             </div>
                         ))}
                     </div>
-                </div>
-            )}
+                )}
+            </div>
 
             {/* Report View */}
             {report && (
