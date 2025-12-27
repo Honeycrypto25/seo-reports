@@ -229,7 +229,12 @@ export default function ReportsPage() {
                             </div>
                             <div>
                                 <h3 className="text-lg font-bold">Raport SEO Detaliat</h3>
-                                <p className="text-xs text-foreground-muted">{selectedSite} • {selectedMonth}</p>
+                                <div className="flex flex-col text-xs text-foreground-muted">
+                                    <span>{selectedSite} • {selectedMonth}</span>
+                                    <span className="text-primary font-mono mt-1 opacity-80">
+                                        Generat la: {new Date().toLocaleTimeString()} (Versiune Nouă)
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
@@ -251,6 +256,17 @@ export default function ReportsPage() {
                             </Button>
                         </div>
                     </div>
+
+                    {/* Bing Warning if No Data */}
+                    {report.summary.bingClicks === 0 && (
+                        <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-200 text-sm flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+                            <p>
+                                <strong>Notă Bing:</strong> Nu au fost găsite date de trafic pe Bing pentru această perioadă.
+                                Raportul conține doar date Google Search Console.
+                            </p>
+                        </div>
+                    )}
 
                     <div ref={reportRef} className="space-y-8 p-1"> {/* p-1 to prevent shadow clipping in PDF */}
                         {/* AI Highlights Header */}
