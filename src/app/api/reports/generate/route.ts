@@ -107,6 +107,7 @@ export async function POST(request: Request) {
         // We'll set them to null as placeholders to fix the build unless we have specific previous data.
         const bingPrevious = null;
         const bingYoy = null;
+        const bingStatus = bingUrl ? 'connected' : 'not_connected';
 
         const gscPayload = {
             current: summarizeGSC(gscCurrent),
