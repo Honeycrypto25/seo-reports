@@ -90,6 +90,21 @@ export async function POST(request: Request) {
 
         // ... (summarizeGSC and monthlyGroups logic remains same)
 
+        // Helper to sum up GSC arrays
+        const summarizeGSC = (rows: any[]) => {
+            const clicks = rows.reduce((acc, r) => acc + (r.clicks || 0), 0);
+            const impressions = rows.reduce((acc, r) => acc + (r.impressions || 0), 0);
+            const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+            const position = rows.length > 0 ? rows.reduce((acc, r) => acc + (r.position || 0), 0) / rows.length : 0;
+            return { clicks, impressions, ctr, position };
+        };
+
+        const gscPayload = {
+            current: summarizeGSC(gscCurrent),
+            previous: summarizeGSC(gscPrevious),
+            yoy: summarizeGSC(gscYoy)
+        };
+
         // Sort and slice keywords to get real Top 50 by Clicks
         const top50Keywords = gscKeywords
             .sort((a, b) => (b.clicks || 0) - (a.clicks || 0))
