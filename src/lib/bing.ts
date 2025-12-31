@@ -84,9 +84,10 @@ export async function getBingPerformance(
             // Also Date might be in a specific format.
             let dateStr = item.Date || item.date;
 
-            // Handle ASP.NET JSON Date format: /Date(1234567890)/
+            // Handle ASP.NET JSON Date format: /Date(1234567890)/ or /Date(1234567890-0700)/
             if (typeof dateStr === 'string' && dateStr.includes('/Date(')) {
-                const match = dateStr.match(/\/Date\((\d+)\)\//);
+                // Extract the first sequence of digits, ignoring optional timezone suffix
+                const match = dateStr.match(/\/Date\((-?\d+)/);
                 if (match) {
                     dateStr = new Date(parseInt(match[1])).toISOString().split('T')[0];
                 }
