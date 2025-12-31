@@ -6,7 +6,7 @@ import { normalizeDomain } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Search, Globe, FileBarChart, Loader2, Calendar, Sparkles, ShieldCheck, Download, ArrowUpRight, TrendingUp, CheckCircle2 } from "lucide-react";
 import {
-    XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area
+    XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, BarChart, Bar
 } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 import jsPDF from 'jspdf';
@@ -90,6 +90,7 @@ export default function ReportsPage() {
             summary: historyItem.summary,
             aiReport: historyItem.aiReport,
             daily: historyItem.dailyData,
+            last16Months: historyItem.aiReport?.monthlyTrend || [],
             summaryCards: historyItem.aiReport.highlights
         });
         setSelectedMonth(historyItem.period);
@@ -220,10 +221,10 @@ export default function ReportsPage() {
 
             {/* Report View */}
             {report && (
-                <div id="report-container" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div id="report-container" className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl mx-auto pb-20">
 
                     {/* Report Header Actions */}
-                    <div className="flex justify-between items-center bg-surface p-4 rounded-xl border border-border shadow-lg no-print">
+                    <div className="flex justify-between items-center bg-surface p-4 rounded-xl border border-border shadow-sm no-print">
                         <div className="flex items-center gap-4">
                             <div className="p-2 rounded-lg bg-primary/10">
                                 <FileBarChart className="w-6 h-6 text-primary" />
@@ -233,7 +234,7 @@ export default function ReportsPage() {
                                 <div className="flex flex-col text-xs text-foreground-muted">
                                     <span>{selectedSite} • {selectedMonth}</span>
                                     <span className="text-primary font-mono mt-1 opacity-80">
-                                        Generat la: {new Date().toLocaleTimeString()} (Versiune Nouă)
+                                        Generat la: {new Date().toLocaleTimeString()} (Format Nou)
                                     </span>
                                 </div>
                             </div>
@@ -253,292 +254,124 @@ export default function ReportsPage() {
                                 className="gap-2 border-primary/30 hover:bg-primary/5 hover:border-primary/50 text-primary-foreground"
                             >
                                 <Download className="w-4 h-4" />
-                                Print / Save PDF
+                                Save as PDF
                             </Button>
                         </div>
                     </div>
 
-                    {/* Bing Warning if No Data */}
-                    {report.summary.bingClicks === 0 && (
-                        <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-200 text-sm flex items-center gap-3">
-                            <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
-                            <p>
-                                <strong>Notă Bing:</strong> Nu au fost găsite date de trafic pe Bing pentru această perioadă.
-                                Raportul conține doar date Google Search Console.
+                    <div ref={reportRef} className="space-y-10 p-8 bg-white dark:bg-zinc-950 rounded-xl shadow-sm text-zinc-900 dark:text-zinc-100 font-sans">
+
+                        {/* 1. Header Document */}
+                        <div className="border-b border-zinc-200 dark:border-zinc-800 pb-6 mb-8">
+                            <h1 className="text-3xl font-extrabold tracking-tight mb-2">{selectedSite}</h1>
+                            <p className="text-xl text-zinc-500 dark:text-zinc-400">
+                                Raport Performanță SEO • {new Date(selectedMonth).toLocaleString('ro-RO', { month: 'long', year: 'numeric' })}
                             </p>
                         </div>
-                    )}
 
-                    <div ref={reportRef} className="space-y-8 p-1"> {/* p-1 to prevent shadow clipping in PDF */}
+                        {/* Components for Markdown */}
+                        {(() => {
+                            const markdownComponents = {
+                                h1: ({ node, ...props }: any) => <h2 className="text-2xl font-bold mt-8 mb-4 flex items-center gap-2 border-b pb-2 border-zinc-100 dark:border-zinc-800" {...props} />,
+                                h2: ({ node, ...props }: any) => <h3 className="text-xl font-bold mt-6 mb-3 text-zinc-800 dark:text-zinc-200" {...props} />,
+                                h3: ({ node, ...props }: any) => <h4 className="text-lg font-semibold mt-4 mb-2 text-zinc-700 dark:text-zinc-300" {...props} />,
+                                p: ({ node, ...props }: any) => <p className="mb-4 leading-relaxed text-zinc-600 dark:text-zinc-400" {...props} />,
+                                ul: ({ node, ...props }: any) => <ul className="list-disc pl-6 mb-4 space-y-1 text-zinc-600 dark:text-zinc-400" {...props} />,
+                                li: ({ node, ...props }: any) => <li className="pl-1" {...props} />,
+                                table: ({ node, ...props }: any) => <div className="overflow-x-auto mb-6 rounded-lg border border-zinc-200 dark:border-zinc-800"><table className="w-full text-sm text-left" {...props} /></div>,
+                                thead: ({ node, ...props }: any) => <thead className="bg-zinc-50 dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 uppercase text-xs font-semibold" {...props} />,
+                                tbody: ({ node, ...props }: any) => <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800" {...props} />,
+                                tr: ({ node, ...props }: any) => <tr className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50 transition-colors" {...props} />,
+                                th: ({ node, ...props }: any) => <th className="px-4 py-3 font-medium whitespace-nowrap" {...props} />,
+                                td: ({ node, ...props }: any) => <td className="px-4 py-3 whitespace-nowrap" {...props} />,
+                            };
 
-                        {/* Title & Highlights */}
-                        {report.aiReport && (
-                            <div className="space-y-6">
-                                <div className="p-6 rounded-xl bg-gradient-to-br from-primary/10 via-surface to-surface border border-primary/20 shadow-lg relative overflow-hidden group">
-                                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors duration-500" />
-
-                                    <div className="flex items-center gap-3 mb-6 relative">
-                                        <div className="p-2 rounded-lg bg-primary/20 text-primary">
-                                            <Sparkles className="w-5 h-5" />
+                            return (
+                                <>
+                                    {/* 2. SEO Actions */}
+                                    {report.aiReport?.seo_actions && (
+                                        <div className="section-block">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                                {report.aiReport.seo_actions}
+                                            </ReactMarkdown>
                                         </div>
-                                        <div>
-                                            <h3 className="text-xl font-bold tracking-tight">Insights & Performanță</h3>
-                                            <p className="text-xs font-dm text-primary uppercase tracking-widest font-semibold opacity-80">EXECUTIVE SUMMARY</p>
-                                        </div>
-                                    </div>
+                                    )}
 
-                                    <div className="grid gap-4 sm:grid-cols-2 relative">
-                                        {report.aiReport.highlights?.map((h: string, i: number) => (
-                                            <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-surface/50 border border-primary/10 hover:border-primary/30 transition-colors">
-                                                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                                                <p className="text-sm text-foreground/90 leading-relaxed">{h}</p>
+                                    {/* 3. Bing Section */}
+                                    {report.aiReport?.bing_section && (
+                                        <div className="section-block mt-8">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                                {report.aiReport.bing_section}
+                                            </ReactMarkdown>
+                                        </div>
+                                    )}
+
+                                    {/* 4. Google Section */}
+                                    {report.aiReport?.google_section && (
+                                        <div className="section-block mt-8">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                                {report.aiReport.google_section}
+                                            </ReactMarkdown>
+                                        </div>
+                                    )}
+
+                                    {/* 5. Organic Evolution */}
+                                    {/* Split rendering for chart insertion */}
+                                    <div className="section-block mt-8 break-inside-avoid">
+                                        {report.aiReport?.organic_evolution && (
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                                {report.aiReport.organic_evolution}
+                                            </ReactMarkdown>
+                                        )}
+
+                                        {/* 16-Month Chart */}
+                                        {report.last16Months && report.last16Months.length > 0 && (
+                                            <div className="mt-6 p-4 bg-zinc-50 dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                                                <h4 className="text-sm font-semibold mb-4 text-zinc-500 uppercase tracking-widest text-center">Trend Clickuri Organice (16 Luni)</h4>
+                                                <div className="h-[300px] w-full">
+                                                    <ResponsiveContainer width="100%" height="100%">
+                                                        <AreaChart data={report.last16Months} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                                            <defs>
+                                                                <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
+                                                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2} />
+                                                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                                                </linearGradient>
+                                                            </defs>
+                                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e4e4e7" strokeOpacity={0.5} />
+                                                            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717a' }} tickFormatter={(v) => v.slice(5)} minTickGap={30} />
+                                                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#71717a' }} width={30} />
+                                                            <Tooltip
+                                                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                                                labelStyle={{ color: '#71717a', fontSize: '12px', marginBottom: '4px' }}
+                                                            />
+                                                            <Area type="monotone" dataKey="clicks" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorClicks)" name="Clickuri Organice" />
+                                                        </AreaChart>
+                                                    </ResponsiveContainer>
+                                                </div>
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
-                                </div>
-                            </div>
-                        )}
 
-                        {/* Comparative Tables (MoM) */}
-                        <div className="grid gap-6 lg:grid-cols-1">
-                            {/* Google Table */}
-                            {report.aiReport?.google_table && (
-                                <div className="p-6 rounded-xl bg-surface border border-border shadow-md">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <ArrowUpRight className="w-5 h-5 text-blue-500" />
-                                        <h3 className="text-lg font-bold">Google Performanță (MoM)</h3>
-                                    </div>
-                                    <div className="overflow-x-auto">
-                                        <ReactMarkdown
-                                            remarkPlugins={[remarkGfm]}
-                                            components={{
-                                                table: ({ node, ...props }) => <table className="w-full text-sm text-left border-collapse" {...props} />,
-                                                thead: ({ node, ...props }) => <thead className="bg-surface-highlight text-foreground-muted uppercase text-xs" {...props} />,
-                                                tbody: ({ node, ...props }) => <tbody className="divide-y divide-border" {...props} />,
-                                                tr: ({ node, ...props }) => <tr className="hover:bg-surface-highlight/50 transition-colors" {...props} />,
-                                                th: ({ node, ...props }) => <th className="px-4 py-3 font-medium border-b border-border" {...props} />,
-                                                td: ({ node, ...props }) => <td className="px-4 py-3 border-b border-border text-foreground" {...props} />,
-                                            }}
-                                        >
-                                            {report.aiReport.google_table}
-                                        </ReactMarkdown>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Bing Table */}
-                            {report.aiReport?.bing_table && (
-                                <div className="p-6 rounded-xl bg-surface border border-border shadow-md">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <ArrowUpRight className="w-5 h-5 text-emerald-500" />
-                                        <h3 className="text-lg font-bold">Bing Performanță (MoM)</h3>
-                                    </div>
-                                    <div className="overflow-x-auto">
-                                        <ReactMarkdown
-                                            remarkPlugins={[remarkGfm]}
-                                            components={{
-                                                table: ({ node, ...props }) => <table className="w-full text-sm text-left border-collapse" {...props} />,
-                                                thead: ({ node, ...props }) => <thead className="bg-surface-highlight text-foreground-muted uppercase text-xs" {...props} />,
-                                                tbody: ({ node, ...props }) => <tbody className="divide-y divide-border" {...props} />,
-                                                tr: ({ node, ...props }) => <tr className="hover:bg-surface-highlight/50 transition-colors" {...props} />,
-                                                th: ({ node, ...props }) => <th className="px-4 py-3 font-medium border-b border-border" {...props} />,
-                                                td: ({ node, ...props }) => <td className="px-4 py-3 border-b border-border text-foreground" {...props} />,
-                                            }}
-                                        >
-                                            {report.aiReport.bing_table}
-                                        </ReactMarkdown>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Analysis & Charts */}
-                        <div className="grid gap-8 lg:grid-cols-2">
-                            {/* Text Analysis Column */}
-                            <div className="space-y-6">
-                                {report.aiReport?.google_section && (
-                                    <div className="p-6 rounded-xl bg-surface border border-border">
-                                        <div className="flex items-center gap-2 mb-4 text-blue-400">
-                                            <Search className="w-5 h-5" />
-                                            <h3 className="font-bold">Analiză Google</h3>
+                                    {/* 6. Top Keywords */}
+                                    {report.aiReport?.top_keywords && (
+                                        <div className="section-block mt-8">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                                {report.aiReport.top_keywords}
+                                            </ReactMarkdown>
                                         </div>
-                                        <div className="prose prose-invert max-w-none text-foreground-muted text-sm leading-relaxed">
-                                            <ReactMarkdown>{report.aiReport.google_section}</ReactMarkdown>
-                                        </div>
-                                    </div>
-                                )}
-                                {report.aiReport?.bing_section && (
-                                    <div className="p-6 rounded-xl bg-surface border border-border">
-                                        <div className="flex items-center gap-2 mb-4 text-emerald-400">
-                                            <Globe className="w-5 h-5" />
-                                            <h3 className="font-bold">Analiză Bing</h3>
-                                        </div>
-                                        <div className="prose prose-invert max-w-none text-foreground-muted text-sm leading-relaxed">
-                                            <ReactMarkdown>{report.aiReport.bing_section}</ReactMarkdown>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                                    )}
 
-                            {/* Charts Column */}
-                            <div className="space-y-6">
-                                {/* Google Chart */}
-                                <div className="p-6 rounded-xl bg-surface border border-border min-h-[300px]">
-                                    <h3 className="font-bold mb-6 text-sm flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                        Evoluție Zilnică Click-uri (Google)
-                                    </h3>
-                                    <div className="h-[250px] w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <AreaChart data={report.daily}>
-                                                <defs>
-                                                    <linearGradient id="colorGscOnly" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                                                    </linearGradient>
-                                                </defs>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                                                <XAxis
-                                                    dataKey="date"
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tick={{ fill: '#71717a', fontSize: 10 }}
-                                                    tickFormatter={(str: string) => str.slice(-2)}
-                                                    minTickGap={30}
-                                                />
-                                                <YAxis
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tick={{ fill: '#71717a', fontSize: 10 }}
-                                                    width={30}
-                                                />
-                                                <Tooltip
-                                                    contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
-                                                    itemStyle={{ fontSize: '12px' }}
-                                                    labelStyle={{ color: '#a1a1aa', marginBottom: '4px' }}
-                                                />
-                                                <Area
-                                                    type="monotone"
-                                                    dataKey="gsc.clicks"
-                                                    name="Google Clicks"
-                                                    stroke="#3b82f6"
-                                                    fillOpacity={1}
-                                                    fill="url(#colorGscOnly)"
-                                                    strokeWidth={2}
-                                                />
-                                            </AreaChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                </div>
-
-                                {/* Bing Chart (Conditional) */}
-                                {report.summary.bingClicks > 0 && (
-                                    <div className="p-6 rounded-xl bg-surface border border-border min-h-[300px]">
-                                        <h3 className="font-bold mb-6 text-sm flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                            Evoluție Zilnică Click-uri (Bing)
-                                        </h3>
-                                        <div className="h-[250px] w-full">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <AreaChart data={report.daily}>
-                                                    <defs>
-                                                        <linearGradient id="colorBingOnly" x1="0" y1="0" x2="0" y2="1">
-                                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                                                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                                                        </linearGradient>
-                                                    </defs>
-                                                    <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                                                    <XAxis
-                                                        dataKey="date"
-                                                        axisLine={false}
-                                                        tickLine={false}
-                                                        tick={{ fill: '#71717a', fontSize: 10 }}
-                                                        tickFormatter={(str: string) => str.slice(-2)}
-                                                        minTickGap={30}
-                                                    />
-                                                    <YAxis
-                                                        axisLine={false}
-                                                        tickLine={false}
-                                                        tick={{ fill: '#71717a', fontSize: 10 }}
-                                                        width={30}
-                                                    />
-                                                    <Tooltip
-                                                        contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
-                                                        itemStyle={{ fontSize: '12px' }}
-                                                        labelStyle={{ color: '#a1a1aa', marginBottom: '4px' }}
-                                                    />
-                                                    <Area
-                                                        type="monotone"
-                                                        dataKey="bing.clicks"
-                                                        name="Bing Clicks"
-                                                        stroke="#10b981"
-                                                        fillOpacity={1}
-                                                        fill="url(#colorBingOnly)"
-                                                        strokeWidth={2}
-                                                    />
-                                                </AreaChart>
-                                            </ResponsiveContainer>
+                                    {/* 7. Conclusions */}
+                                    {report.aiReport?.conclusions && (
+                                        <div className="section-block mt-8 p-6 bg-green-50/50 dark:bg-green-950/10 rounded-xl border border-green-100 dark:border-green-900/20">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                                                {report.aiReport.conclusions}
+                                            </ReactMarkdown>
                                         </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Detailed Stats Cards (Google vs Bing) */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {/* Google Stats */}
-                            <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                    <p className="text-[10px] font-bold text-blue-400 uppercase">Google Clicks</p>
-                                </div>
-                                <p className="text-xl font-bold">{report.summary.gscClicks.toLocaleString()}</p>
-                            </div>
-                            <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                    <p className="text-[10px] font-bold text-blue-400 uppercase">Google Impres.</p>
-                                </div>
-                                <p className="text-xl font-bold">{report.summary.gscImpressions.toLocaleString()}</p>
-                            </div>
-
-                            {/* Bing Stats */}
-                            <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                    <p className="text-[10px] font-bold text-emerald-400 uppercase">Bing Clicks</p>
-                                </div>
-                                <p className="text-xl font-bold">{report.summary.bingClicks.toLocaleString()}</p>
-                            </div>
-                            <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                    <p className="text-[10px] font-bold text-emerald-400 uppercase">Bing Impres.</p>
-                                </div>
-                                <p className="text-xl font-bold">{report.summary.bingImpressions.toLocaleString()}</p>
-                            </div>
-                        </div>
-
-                        {/* Debug Info Footer */}
-                        <div className="mt-8 pt-8 border-t border-border">
-                            <div className="flex flex-col gap-2 text-xs text-foreground-muted">
-                                <div>
-                                    SEO Report Hub &bull; Generat la: {new Date().toLocaleString('ro-RO')} (Versiune Finală)
-                                </div>
-                                {report._debug && (
-                                    <details className="text-left cursor-pointer border border-border p-2 rounded bg-black/20">
-                                        <summary className="hover:text-foreground transition-colors font-mono text-[10px]">🔍 Show Debug Info (Bing Diagnostics)</summary>
-                                        <div className="mt-2 p-2 bg-black rounded border border-border overflow-auto text-[10px] font-mono whitespace-pre-wrap">
-                                            <div><strong>Bing URL:</strong> {report._debug.bingUrl}</div>
-                                            <div><strong>Raw Count:</strong> {report._debug.bingRawLength}</div>
-                                            <div><strong>Filtered Count:</strong> {report._debug.filteredCount}</div>
-                                            <div className="mt-1"><strong>Sample Raw Data:</strong></div>
-                                            <pre>{JSON.stringify(report._debug.bingSample, null, 2)}</pre>
-                                        </div>
-                                    </details>
-                                )}
-                            </div>
-                        </div>
+                                    )}
+                                </>
+                            );
+                        })()}
                     </div>
                 </div>
             )}
