@@ -11,6 +11,8 @@ import prisma from "@/lib/db";
 export async function POST(request: Request) {
     const session = await getServerSession(authOptions);
     const bingApiKey = process.env.BING_API_KEY;
+    const host = request.headers.get("host");
+    const proto = request.headers.get("x-forwarded-proto") || "http";
 
     if (!session || !session.accessToken) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
