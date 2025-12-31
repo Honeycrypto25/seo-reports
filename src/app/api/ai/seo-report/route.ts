@@ -36,6 +36,7 @@ type RequestBody = {
         ctr: number;
         position: number;
     }> | null;
+    bing_status?: string;
 };
 
 const openai = new OpenAI({
