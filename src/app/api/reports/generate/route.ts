@@ -88,8 +88,6 @@ export async function POST(request: Request) {
             fetchBingStats(bingUrl)
         ]);
 
-        // ... (summarizeGSC and monthlyGroups logic remains same)
-
         // Helper to sum up GSC arrays
         const summarizeGSC = (rows: any[]) => {
             const clicks = rows.reduce((acc, r) => acc + (r.clicks || 0), 0);
@@ -98,6 +96,9 @@ export async function POST(request: Request) {
             const position = rows.length > 0 ? rows.reduce((acc, r) => acc + (r.position || 0), 0) / rows.length : 0;
             return { clicks, impressions, ctr, position };
         };
+
+        // Define bingPayloadCurrent explicitly
+        const bingPayloadCurrent = bingRaw.length > 0 ? summarizeGSC(bingRaw) : null;
 
         const gscPayload = {
             current: summarizeGSC(gscCurrent),
@@ -128,8 +129,8 @@ export async function POST(request: Request) {
                 previous: gscPayload.previous,
                 yoy: gscPayload.yoy
             },
-            bing: bingCurrent ? {
-                current: { clicks: bingCurrent.clicks, impressions: bingCurrent.impressions, ctr: bingCurrent.ctr },
+            bing: bingPayloadCurrent ? {
+                current: { clicks: bingPayloadCurrent.clicks, impressions: bingPayloadCurrent.impressions, ctr: bingPayloadCurrent.ctr },
                 previous: bingPrevious,
                 yoy: bingYoy
             } : null,
@@ -189,8 +190,8 @@ export async function POST(request: Request) {
             summary: {
                 gscClicks: gscPayload.current.clicks,
                 gscImpressions: gscPayload.current.impressions,
-                bingClicks: bingCurrent?.clicks || 0,
-                bingImpressions: bingCurrent?.impressions || 0,
+                bingClicks: bingPayloadCurrent?.clicks || 0,
+                bingImpressions: bingPayloadCurrent?.impressions || 0,
             },
             daily: dailyDataArray,
             last16Months,
