@@ -80,7 +80,7 @@ export async function POST(request: Request) {
             gscYoy,
             gscTrendRaw, // Fetch daily for trend and aggregate manually
             gscKeywords, // Top keywords
-            bingRaw
+            bingDailyData
         ] = await Promise.all([
             getGSCPerformance(session.accessToken as string, gscUrl, curStart, curEnd),
             getGSCPerformance(session.accessToken as string, gscUrl, prevStart, prevEnd),
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
         };
 
         // Define bingPayloadCurrent explicitly
-        const bingPayloadCurrent = bingRaw.length > 0 ? summarizeGSC(bingRaw) : null;
+        const bingPayloadCurrent = bingDailyData.length > 0 ? summarizeGSC(bingDailyData) : null;
 
         // Assume prev/yoy for Bing are not currently fetched separately or we need to add logic
         // For now, let's just default to null or try to extract if `fetchBingStats` supported ranges
@@ -280,8 +280,8 @@ export async function POST(request: Request) {
             summaryCards: aiData.summary_cards,
             _debug: {
                 bingUrl,
-                bingRawLength: bingRaw?.length || 0,
-                bingSample: bingRaw?.slice(0, 2),
+                bingRawLength: bingDailyData?.length || 0,
+                bingSample: bingDailyData?.slice(0, 2),
                 filteredCount: bingDailyData?.length || 0,
                 year, month
             }
