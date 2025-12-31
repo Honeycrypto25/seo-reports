@@ -38,7 +38,80 @@ type RequestBody = {
     }> | null;
 };
 
-// ... (helpers remain same)
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+});
+
+function isFiniteNumber(v: any) {
+    return typeof v === "number" && Number.isFinite(v);
+}
+
+function safeDeltaPct(current: number, previous: number) {
+    if (!Number.isFinite(current) || !Number.isFinite(previous) || previous === 0) return null;
+    return ((current - previous) / previous) * 100;
+}
+
+function buildDeltas(current: PeriodMetrics, previous?: PeriodMetrics | null) {
+    if (!previous) return null;
+
+    const clicksPct = safeDeltaPct(current.clicks, previous.clicks);
+    const impressionsPct = safeDeltaPct(current.impressions, previous.impressions);
+    const ctrDeltaPP = current.ctr - previous.ctr;
+
+    const curPos = current.position ?? null;
+    const prevPos = previous.position ?? null;
+
+    // positive value = improvement (position got smaller)
+    const positionImprovement =
+        curPos !== null && prevPos !== null ? prevPos - curPos : null;
+
+    return {
+        clicks_delta_abs: current.clicks - previous.clicks,
+        clicks_delta_pct: clicksPct,
+        impressions_delta_abs: current.impressions - previous.impressions,
+        impressions_delta_pct: impressionsPct,
+        ctr_delta_pp: ctrDeltaPP,
+        position_improvement: positionImprovement,
+    };
+}
+
+function getPreviousMonthLabel(currentLabel: string) {
+    try {
+        const [y, m] = currentLabel.split('-').map(Number);
+        if (y && m) {
+            let prevM = m - 1;
+            let prevY = y;
+            if (prevM < 1) { prevM = 12; prevY -= 1; }
+            const months = ["IAN", "FEB", "MAR", "APR", "MAI", "IUN", "IUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            const prevName = months[prevM - 1] || "Previous";
+            return `${prevName} ${prevY}`;
+        }
+    } catch (e) { }
+    return "Luna Anterioară";
+}
+
+function getYoYMonthLabel(currentLabel: string) {
+    try {
+        const [y, m] = currentLabel.split('-').map(Number);
+        if (y && m) {
+            const prevY = y - 1;
+            const months = ["IAN", "FEB", "MAR", "APR", "MAI", "IUN", "IUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            return `${months[m - 1]} ${prevY}`;
+        }
+    } catch (e) { }
+    return "Anul Trecut";
+}
+
+function formatCurrentLabel(currentLabel: string) {
+    try {
+        const [y, m] = currentLabel.split('-').map(Number);
+        if (y && m) {
+            const months = ["IAN", "FEB", "MAR", "APR", "MAI", "IUN", "IUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            return `${months[m - 1]} ${y}`;
+        }
+    } catch (e) { }
+    return currentLabel;
+}
 
 export async function POST(req: Request) {
     try {
