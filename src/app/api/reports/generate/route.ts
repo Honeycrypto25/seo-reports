@@ -99,8 +99,14 @@ export async function POST(request: Request) {
             return { clicks, impressions, ctr, position };
         };
 
-        // Define bingPayloadCurrent explicitly
-        const bingPayloadCurrent = bingDailyData.length > 0 ? summarizeGSC(bingDailyData) : null;
+        // Filter Bing data for the current period only
+        const bingCurrentData = bingDailyData.filter((r: any) => {
+            if (!r.date) return false;
+            return r.date >= curStart && r.date <= curEnd;
+        });
+
+        // Define bingPayloadCurrent from filtered data
+        const bingPayloadCurrent = bingCurrentData.length > 0 ? summarizeGSC(bingCurrentData) : null;
 
         // Assume prev/yoy for Bing are not currently fetched separately or we need to add logic
         // For now, let's just default to null or try to extract if `fetchBingStats` supported ranges

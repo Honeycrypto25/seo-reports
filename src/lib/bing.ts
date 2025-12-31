@@ -77,14 +77,48 @@ export async function getBingPerformance(
         }
     };
 
-    // 1. Try exact match first
-    let data = await fetchVariant(siteUrl);
+    // Helper to normalize keys and format date
+    const normalizeBingData = (items: any[]) => {
+        return items.map((item: any) => {
+            // Bing typically uses PascalCase: Date, Clicks, Impressions, etc.
+            // Also Date might be in a specific format.
+            let dateStr = item.Date || item.date;
 
-    // If data is found and not empty, return it immediately
-    if (data && data.length > 0) return data;
+            // Handle ASP.NET JSON Date format: /Date(1234567890)/
+            if (typeof dateStr === 'string' && dateStr.includes('/Date(')) {
+                const match = dateStr.match(/\/Date\((\d+)\)\//);
+                if (match) {
+                    dateStr = new Date(parseInt(match[1])).toISOString().split('T')[0];
+                }
+            } else if (dateStr) {
+                // Try to parse standard date string
+                try {
+                    dateStr = new Date(dateStr).toISOString().split('T')[0];
+                } catch (e) {
+                    // keep original if fail
+                }
+            }
+
+            return {
+                date: dateStr,
+                clicks: item.Clicks ?? item.clicks ?? 0,
+                impressions: item.Impressions ?? item.impressions ?? 0,
+                ctr: item.CbRank ?? item.ctr ?? 0, // Note: Bing might call it BroadCtr, or calculated. GSC uses 'ctr'.
+                // Actually Bing GetRankAndTrafficStats returns: Date, Clicks, Impressions, AddedDate, ... 
+                // Let's assume standard names.
+                position: item.AveragePosition ?? item.position ?? 0
+            };
+        });
+    };
+
+    // 1. Try exact match first
+    let rawData = await fetchVariant(siteUrl);
+
+    // If data is found and not empty, return normalized
+    if (rawData && rawData.length > 0) return normalizeBingData(rawData);
 
     // If we are allowed to retry and data is null (error) or empty (maybe wrong url variant?)
-    if (retry && (!data || data.length === 0)) {
+    if (retry && (!rawData || rawData.length === 0)) {
         console.log(`[Bing] No data for ${siteUrl}, trying variations...`);
 
         // Generate variations
@@ -102,7 +136,7 @@ export async function getBingPerformance(
                     const variantData = await fetchVariant(variant);
                     if (variantData && variantData.length > 0) {
                         console.log(`[Bing] Found data on variation: ${variant}`);
-                        return variantData;
+                        return normalizeBingData(variantData);
                     }
                 }
             }
@@ -110,5 +144,5 @@ export async function getBingPerformance(
     }
 
     // Return whatever we got (empty array likely) if all retries failed
-    return data || [];
+    return rawData ? normalizeBingData(rawData) : [];
 }
