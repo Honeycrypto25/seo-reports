@@ -115,7 +115,31 @@ export async function POST(request: Request) {
             yoy: summarizeGSC(gscYoy)
         };
 
-        // Sort and slice keywords to get real Top 50 by Clicks
+        // Helper to group daily data by month for 16 months trend
+        const groupDailyByMonth = (rows: any[]) => {
+            const groups: { [key: string]: any } = {};
+            rows.forEach(r => {
+                const day = r.keys[0]; // yyyy-mm-dd
+                const mLabel = day.substring(0, 7); // yyyy-mm
+                if (!groups[mLabel]) {
+                    groups[mLabel] = { month: mLabel, clicks: 0, impressions: 0, ctr: 0, position: 0, count: 0 };
+                }
+                groups[mLabel].clicks += r.clicks || 0;
+                groups[mLabel].impressions += r.impressions || 0;
+                groups[mLabel].position += r.position || 0;
+                groups[mLabel].count += 1;
+            });
+            return Object.values(groups).map(g => ({
+                month: g.month,
+                clicks: g.clicks,
+                impressions: g.impressions,
+                ctr: g.impressions > 0 ? (g.clicks / g.impressions) * 100 : 0,
+                position: g.count > 0 ? g.position / g.count : 0
+            })).sort((a, b) => a.month.localeCompare(b.month)); // sort chronological
+        };
+
+        // Calculate last16Months from the raw daily data fetched
+        const last16Months = groupDailyByMonth(gscTrendRaw);
         const top50Keywords = gscKeywords
             .sort((a, b) => (b.clicks || 0) - (a.clicks || 0))
             .slice(0, 50)
