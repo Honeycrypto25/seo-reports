@@ -96,7 +96,7 @@ export async function POST(request: Request) {
             .slice(0, 50)
             .map((k, i) => ({
                 rank: i + 1,
-                keyword: k.keys[0],
+                keyword: k.keys?.[0] || "(unknown)",
                 clicks: k.clicks,
                 impressions: k.impressions,
                 ctr: k.ctr,
