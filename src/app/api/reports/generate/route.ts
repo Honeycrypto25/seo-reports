@@ -100,6 +100,14 @@ export async function POST(request: Request) {
         // Define bingPayloadCurrent explicitly
         const bingPayloadCurrent = bingRaw.length > 0 ? summarizeGSC(bingRaw) : null;
 
+        // Assume prev/yoy for Bing are not currently fetched separately or we need to add logic
+        // For now, let's just default to null or try to extract if `fetchBingStats` supported ranges
+        // Note: fetchBingStats in this codebase currently just returns one array of data corresponding to current period? 
+        // Based on lines 65-73, it fetches `getBingPerformance(bingApiKey, url)`. 
+        // We'll set them to null as placeholders to fix the build unless we have specific previous data.
+        const bingPrevious = null;
+        const bingYoy = null;
+
         const gscPayload = {
             current: summarizeGSC(gscCurrent),
             previous: summarizeGSC(gscPrevious),
