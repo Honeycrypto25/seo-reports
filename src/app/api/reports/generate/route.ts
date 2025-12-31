@@ -108,12 +108,14 @@ export async function POST(request: Request) {
         // Define bingPayloadCurrent from filtered data
         const bingPayloadCurrent = bingCurrentData.length > 0 ? summarizeGSC(bingCurrentData) : null;
 
-        // Assume prev/yoy for Bing are not currently fetched separately or we need to add logic
-        // For now, let's just default to null or try to extract if `fetchBingStats` supported ranges
-        // Note: fetchBingStats in this codebase currently just returns one array of data corresponding to current period? 
-        // Based on lines 65-73, it fetches `getBingPerformance(bingApiKey, url)`. 
-        // We'll set them to null as placeholders to fix the build unless we have specific previous data.
-        const bingPrevious = null;
+        // Filter Bing data for previous period (if available in the 6-month window)
+        const bingPreviousData = bingDailyData.filter((r: any) => {
+            if (!r.date) return false;
+            return r.date >= prevStart && r.date <= prevEnd;
+        });
+        const bingPrevious = bingPreviousData.length > 0 ? summarizeGSC(bingPreviousData) : null;
+
+        // Bing API usually returns last 6 months, so YoY (12 months ago) is likely not available in this payload
         const bingYoy = null;
         const bingStatus = bingUrl ? 'connected' : 'not_connected';
 
